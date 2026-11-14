@@ -6,14 +6,12 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Мои Финансы</title>
-<!-- 👇 ВОТ ЗДЕСЬ ПОДКЛЮЧЕНИЕ PWA 👇 -->
 <link rel="manifest" href="manifest.json">
 <script>
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js');
   }
 </script>
-<!-- 👆 КОНЕЦ ПОДКЛЮЧЕНИЯ 👆 -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
   :root {
@@ -154,7 +152,117 @@
   let mainChartInstance = null;
   let detailChartInstance = null;
   let currentDetailType = '';
-  let appData = JSON.parse(localStorage.getItem('financeData')) || { assets: [], liabilities: [], transactions: [] };
+  
+  // 👇 ЗДЕСЬ ТВОИ ДАННЫЕ, ЗАШИТЫЕ В КОД 👇
+  const defaultData = {
+    "assets": [
+      { "name": "Вклад МКБ (Финуслуги)", "amount": 300000 },
+      { "name": "Накопительный счет (Сбер)", "amount": 80106 },
+      { "name": "Дебетовая карта Сбер", "amount": 7808 },
+      { "name": "Долг Ляли", "amount": 55500 },
+      { "name": "Долг Макара", "amount": 143100 },
+      { "name": "Долг Педро (наличными)", "amount": 30000 }
+    ],
+    "liabilities": [
+      { "name": "Кредитка Т-Банк", "amount": 83932 },
+      { "name": "Кредитка Сбер", "amount": 69904 },
+      { "name": "Микрозайм Т-Финанс (за Педро)", "amount": 100000 }
+    ],
+    "transactions": [
+      { "date": "2026-09-01", "type": "expense", "category": "Машина", "description": "Заправка Газпромнефть", "amount": 2410 },
+      { "date": "2026-09-02", "type": "expense", "category": "Продукты", "description": "Пятерочка", "amount": 186 },
+      { "date": "2026-09-06", "type": "expense", "category": "Еда вне дома", "description": "Burger King", "amount": 184 },
+      { "date": "2026-09-09", "type": "income", "category": "Зарплата", "description": "Заработная плата", "amount": 29803 },
+      { "date": "2026-09-09", "type": "income", "category": "ГПХ", "description": "Выплаты по договорам", "amount": 21891 },
+      { "date": "2026-09-12", "type": "expense", "category": "Еда вне дома", "description": "Waf&Tea", "amount": 620 },
+      { "date": "2026-09-19", "type": "expense", "category": "Машина", "description": "Мойка", "amount": 200 },
+      { "date": "2026-09-23", "type": "income", "category": "Аванс", "description": "Аванс по заработной плате", "amount": 32665 },
+      { "date": "2026-09-23", "type": "expense", "category": "Машина", "description": "Заправка АЗС", "amount": 2828 },
+      { "date": "2026-09-28", "type": "expense", "category": "Продукты", "description": "Монетка", "amount": 299 },
+      { "date": "2026-09-30", "type": "expense", "category": "ЖКХ", "description": "Госуслуги", "amount": 1125 },
+      { "date": "2026-10-01", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1300 },
+      { "date": "2026-10-02", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1000 },
+      { "date": "2026-10-03", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1000 },
+      { "date": "2026-10-04", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 200 },
+      { "date": "2026-10-05", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 550 },
+      { "date": "2026-10-06", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 360 },
+      { "date": "2026-10-07", "type": "expense", "category": "Продукты", "description": "Суши", "amount": 750 },
+      { "date": "2026-10-08", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1500 },
+      { "date": "2026-10-09", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 800 },
+      { "date": "2026-10-10", "type": "income", "category": "Зарплата", "description": "Заработная плата", "amount": 20997 },
+      { "date": "2026-10-10", "type": "income", "category": "ГПХ", "description": "Выплаты по договорам", "amount": 47398 },
+      { "date": "2026-10-10", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1300 },
+      { "date": "2026-10-11", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 450 },
+      { "date": "2026-10-12", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 500 },
+      { "date": "2026-10-13", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1000 },
+      { "date": "2026-10-14", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 260 },
+      { "date": "2026-10-15", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1400 },
+      { "date": "2026-10-16", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 160 },
+      { "date": "2026-10-17", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 200 },
+      { "date": "2026-10-18", "type": "expense", "category": "Еда вне дома", "description": "Обед", "amount": 400 },
+      { "date": "2026-10-19", "type": "expense", "category": "Еда вне дома", "description": "Кофе", "amount": 170 },
+      { "date": "2026-10-20", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 200 },
+      { "date": "2026-10-21", "type": "expense", "category": "Еда вне дома", "description": "Обед", "amount": 300 },
+      { "date": "2026-10-22", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 100 },
+      { "date": "2026-10-23", "type": "income", "category": "Аванс", "description": "Аванс по заработной плате", "amount": 32665 },
+      { "date": "2026-10-23", "type": "income", "category": "Премия", "description": "Премия", "amount": 13917 },
+      { "date": "2026-10-23", "type": "expense", "category": "Еда вне дома", "description": "Обед", "amount": 500 },
+      { "date": "2026-10-24", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 100 },
+      { "date": "2026-10-25", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 200 },
+      { "date": "2026-10-26", "type": "expense", "category": "Еда вне дома", "description": "Ужин", "amount": 800 },
+      { "date": "2026-10-01", "type": "expense", "category": "Машина", "description": "Бензин", "amount": 2880 },
+      { "date": "2026-10-02", "type": "expense", "category": "Машина", "description": "Парковка", "amount": 150 },
+      { "date": "2026-10-03", "type": "expense", "category": "Машина", "description": "Штраф", "amount": 550 },
+      { "date": "2026-10-04", "type": "expense", "category": "Машина", "description": "Бензин", "amount": 2800 },
+      { "date": "2026-10-05", "type": "expense", "category": "Машина", "description": "Прочее", "amount": 300 },
+      { "date": "2026-10-06", "type": "expense", "category": "Машина", "description": "Доставка колес", "amount": 2500 },
+      { "date": "2026-10-07", "type": "expense", "category": "Машина", "description": "Бензин", "amount": 2880 },
+      { "date": "2026-10-08", "type": "expense", "category": "Машина", "description": "Бензин", "amount": 2900 },
+      { "date": "2026-10-09", "type": "expense", "category": "Машина", "description": "Прочее", "amount": 300 },
+      { "date": "2026-10-10", "type": "expense", "category": "Машина", "description": "Штраф", "amount": 2250 },
+      { "date": "2026-10-11", "type": "expense", "category": "Машина", "description": "Штраф", "amount": 550 },
+      { "date": "2026-10-12", "type": "expense", "category": "Машина", "description": "Прочее", "amount": 200 },
+      { "date": "2026-10-13", "type": "expense", "category": "Машина", "description": "Бензин", "amount": 2800 },
+      { "date": "2026-10-01", "type": "expense", "category": "Бытовуха", "description": "Прочее", "amount": 500 },
+      { "date": "2026-10-02", "type": "expense", "category": "Бытовуха", "description": "Моющий пылесос", "amount": 6700 },
+      { "date": "2026-10-03", "type": "expense", "category": "Бытовуха", "description": "Туалет", "amount": 700 },
+      { "date": "2026-10-04", "type": "expense", "category": "Бытовуха", "description": "Прочее", "amount": 170 },
+      { "date": "2026-10-05", "type": "expense", "category": "Бытовуха", "description": "Стрижка", "amount": 600 },
+      { "date": "2026-10-06", "type": "expense", "category": "Бытовуха", "description": "Ключи", "amount": 300 },
+      { "date": "2026-10-07", "type": "expense", "category": "Бытовуха", "description": "Коврик", "amount": 300 },
+      { "date": "2026-10-08", "type": "expense", "category": "Бытовуха", "description": "Налог на имущество", "amount": 2000 },
+      { "date": "2026-10-09", "type": "expense", "category": "Бытовуха", "description": "Капремонт", "amount": 1266 },
+      { "date": "2026-10-10", "type": "expense", "category": "Бытовуха", "description": "ЖКХ", "amount": 3550 },
+      { "date": "2026-10-11", "type": "expense", "category": "Бытовуха", "description": "Интернет", "amount": 1080 },
+      { "date": "2026-10-12", "type": "expense", "category": "Бытовуха", "description": "Прочее", "amount": 400 },
+      { "date": "2026-10-13", "type": "expense", "category": "Бытовуха", "description": "Аптека", "amount": 300 },
+      { "date": "2026-10-15", "type": "expense", "category": "Подарки", "description": "Обувь", "amount": 1600 },
+      { "date": "2026-10-16", "type": "expense", "category": "Подарки", "description": "Стайлер", "amount": 9200 },
+      { "date": "2026-11-05", "type": "income", "category": "Отпускные", "description": "Отпускные", "amount": 28001 },
+      { "date": "2026-11-05", "type": "expense", "category": "Долги", "description": "Погашение кредитки Сбер", "amount": 38509 },
+      { "date": "2026-11-05", "type": "expense", "category": "Долги", "description": "Перевод долга Макару", "amount": 13600 },
+      { "date": "2026-11-10", "type": "income", "category": "Зарплата", "description": "Заработная плата", "amount": 32664 },
+      { "date": "2026-11-10", "type": "income", "category": "ГПХ", "description": "Выплаты по договорам", "amount": 23008 },
+      { "date": "2026-11-10", "type": "expense", "category": "Долги", "description": "Минимальный платеж Т-Банк", "amount": 2300 },
+      { "date": "2026-11-10", "type": "expense", "category": "Продукты", "description": "Супермаркеты", "amount": 1224 },
+      { "date": "2026-11-11", "type": "expense", "category": "Здоровье", "description": "Аптека/Косметология", "amount": 3120 },
+      { "date": "2026-11-13", "type": "income", "category": "Страховая выплата", "description": "Выплата на ремонт", "amount": 400000 },
+      { "date": "2026-11-13", "type": "expense", "category": "Долги", "description": "Возврат долга маме", "amount": 85000 },
+      { "date": "2026-11-13", "type": "expense", "category": "Продукты", "description": "Супермаркеты", "amount": 8529 },
+      { "date": "2026-11-13", "type": "expense", "category": "Инвестиции", "description": "Вклад Финуслуги", "amount": 300000 },
+      { "date": "2026-11-13", "type": "expense", "category": "Сбережения", "description": "Накопительный счет", "amount": 80105 },
+      { "date": "2026-11-14", "type": "expense", "category": "Подарки", "description": "Шапка деду", "amount": 1500 }
+    ]
+  };
+
+  // Берем данные из памяти, если там пусто — берем твои зашитые данные
+  let appData = JSON.parse(localStorage.getItem('financeData')) || defaultData;
+  
+  // Записываем их в память, чтобы приложение работало с ними
+  if(!localStorage.getItem('financeData')) {
+    localStorage.setItem('financeData', JSON.stringify(defaultData));
+  }
+
   const CHART_COLORS = ['#6c5ce7', '#00b894', '#ff7675', '#fdcb6e', '#74b9ff', '#a29bfe', '#55efc4', '#fab1a0'];
 
   function formatMoney(amount) { return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount); }
