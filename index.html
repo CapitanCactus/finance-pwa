@@ -7,503 +7,420 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>Мои Финансы</title>
 <link rel="manifest" href="manifest.json">
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
-</script>
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-  :root {
-    --bg: #0f0f15;
-    --card-bg: rgba(30, 30, 45, 0.7);
-    --accent: #6c5ce7;
-    --accent-glow: rgba(108, 92, 231, 0.4);
-    --text: #e0e0e0;
-    --text-muted: #8a8a9a;
-    --green: #00b894;
-    --red: #ff7675;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
-  body {
-    background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px;
-    background-image: radial-gradient(circle at 15% 50%, rgba(108, 92, 231, 0.15), transparent 25%),
-                      radial-gradient(circle at 85% 30%, rgba(0, 184, 148, 0.1), transparent 25%);
-    padding-bottom: 80px;
-  }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-  .animate-in { animation: fadeUp 0.4s ease-out forwards; opacity: 0; }
-  .delay-1 { animation-delay: 0.1s; } .delay-2 { animation-delay: 0.2s; } .delay-3 { animation-delay: 0.3s; }
-  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-  .header h1 { font-size: 22px; font-weight: 700; background: linear-gradient(90deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  .controls { display: flex; gap: 10px; }
-  .icon-btn { padding: 8px 12px; border-radius: 8px; background: var(--card-bg); border: 1px solid rgba(255,255,255,0.1); color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: 0.2s; }
-  .icon-btn:active { transform: scale(0.95); background: var(--accent); }
-  .dashboard { display: grid; grid-template-columns: 1fr; gap: 15px; max-width: 800px; margin: 0 auto; }
-  .card { background: var(--card-bg); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 16px; padding: 20px; transition: 0.2s; position: relative; overflow: hidden; }
-  .card.clickable { cursor: pointer; }
-  .card.clickable:active { transform: scale(0.98); border-color: rgba(108, 92, 231, 0.6); }
-  .card-title { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
-  .card-value { font-size: 28px; font-weight: 700; }
-  .value-green { color: var(--green); } .value-red { color: var(--red); }
-  .chart-container { height: 250px; margin-top: 10px; width: 100%; }
-  .transactions-list { max-height: 400px; overflow-y: auto; margin-top: 15px; padding-right: 5px; }
-  .tx-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.1); border-radius: 8px; margin-bottom: 8px; animation: fadeUp 0.3s ease-out forwards; opacity: 0; }
-  .tx-info { display: flex; flex-direction: column; flex: 1; }
-  .tx-desc { font-weight: 600; font-size: 15px; }
-  .tx-date { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-  .tx-right { display: flex; align-items: center; gap: 10px; }
-  .tx-amount { font-weight: bold; font-size: 15px; text-align: right; }
-  .tx-income { color: var(--green); } .tx-expense { color: var(--red); }
-  .del-btn { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 5px; display: flex; align-items: center; }
-  .del-btn:active { color: var(--red); }
-  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: flex; justify-content: center; align-items: flex-end; opacity: 0; pointer-events: none; transition: 0.3s; z-index: 100; backdrop-filter: blur(5px); }
-  .modal-overlay.active { opacity: 1; pointer-events: auto; }
-  .modal { background: #1a1a24; padding: 25px; border-radius: 20px 20px 0 0; width: 100%; max-width: 600px; transform: translateY(100%); transition: 0.3s; border: 1px solid rgba(255,255,255,0.1); max-height: 90vh; overflow-y: auto; }
-  .modal-overlay.active .modal { transform: translateY(0); }
-  .modal h2 { margin-bottom: 15px; color: var(--accent); font-size: 20px; }
-  .form-group { margin-bottom: 15px; }
-  .form-group label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 5px; }
-  .form-group input, .form-group select { width: 100%; padding: 12px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); color: white; border-radius: 8px; font-size: 16px; appearance: none; -webkit-appearance: none; }
-  .form-group select { background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23e0e0e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 12px top 50%; background-size: 12px auto; }
-  .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
-  .btn { padding: 12px 20px; border: none; border-radius: 8px; background: var(--accent); color: white; font-weight: 600; font-size: 16px; cursor: pointer; transition: 0.2s; width: 100%; }
-  .btn:active { transform: scale(0.98); opacity: 0.9; }
-  .btn-outline { background: transparent; border: 2px solid var(--accent); }
-  .fab { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; border-radius: 30px; background: var(--accent); color: white; display: flex; justify-content: center; align-items: center; font-size: 30px; box-shadow: 0 4px 15px var(--accent-glow); border: none; z-index: 50; transition: 0.2s; }
-  .fab:active { transform: scale(0.9); }
-  .detail-layout { display: flex; flex-direction: column; gap: 20px; }
-  .detail-chart-wrap { position: relative; height: 200px; width: 100%; display: flex; justify-content: center; }
-  .detail-list { display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; }
-  .detail-item { display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; }
-  .detail-item .name { display: flex; align-items: center; gap: 8px; font-weight: 500; font-size: 14px; }
-  .color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .detail-item .amount { font-weight: bold; font-size: 14px; }
-  .detail-item .percent { color: var(--text-muted); font-size: 11px; margin-left: 5px; }
+  :root { --bg:#0f0f15; --card:rgba(30,30,45,0.7); --accent:#6c5ce7; --glow:rgba(108,92,231,0.4); --text:#e0e0e0; --muted:#8a8a9a; --green:#00b894; --red:#ff7675; }
+  * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; -webkit-tap-highlight-color:transparent; }
+  body { background:var(--bg); color:var(--text); min-height:100vh; padding:20px; padding-bottom:80px; background-image:radial-gradient(circle at 15% 50%,rgba(108,92,231,0.15),transparent 25%),radial-gradient(circle at 85% 30%,rgba(0,184,148,0.1),transparent 25%); }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+  .animate-in { animation:fadeUp 0.4s ease-out forwards; opacity:0; }
+  .d1{animation-delay:0.1s;} .d2{animation-delay:0.2s;} .d3{animation-delay:0.3s;}
+  
+  .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; }
+  .header h1 { font-size:22px; font-weight:700; background:linear-gradient(90deg,#fff,var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .controls { display:flex; gap:10px; }
+  .icon-btn { padding:8px 12px; border-radius:8px; background:var(--card); border:1px solid rgba(255,255,255,0.1); color:white; cursor:pointer; font-size:16px; transition:0.2s; }
+  .icon-btn:active { transform:scale(0.95); background:var(--accent); }
+  
+  .dashboard { display:grid; grid-template-columns:1fr; gap:15px; max-width:800px; margin:0 auto; }
+  .card { background:var(--card); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.05); border-radius:16px; padding:20px; transition:0.2s; position:relative; overflow:hidden; }
+  .card.clickable { cursor:pointer; }
+  .card.clickable:active { transform:scale(0.98); border-color:rgba(108,92,231,0.6); }
+  .card-title { font-size:12px; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px; }
+  .card-value { font-size:28px; font-weight:700; }
+  .green{color:var(--green);} .red{color:var(--red);}
+  
+  .chart-container { height:250px; margin-top:10px; width:100%; }
+  .tx-list { max-height:400px; overflow-y:auto; margin-top:15px; padding-right:5px; }
+  .tx-item { display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid rgba(255,255,255,0.05); background:rgba(0,0,0,0.1); border-radius:8px; margin-bottom:8px; animation:fadeUp 0.3s ease-out forwards; opacity:0; }
+  .tx-info{display:flex;flex-direction:column;flex:1;}
+  .tx-desc{font-weight:600;font-size:15px;} .tx-date{font-size:12px;color:var(--muted);margin-top:4px;}
+  .tx-right{display:flex;align-items:center;gap:10px;}
+  .tx-amount{font-weight:bold;font-size:15px;text-align:right;}
+  .del-btn{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:5px;}
+  .del-btn:active{color:var(--red);}
+  
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:flex-end; opacity:0; pointer-events:none; transition:0.3s; z-index:100; backdrop-filter:blur(5px); }
+  .modal-overlay.active { opacity:1; pointer-events:auto; }
+  .modal { background:#1a1a24; padding:25px; border-radius:20px 20px 0 0; width:100%; max-width:600px; transform:translateY(100%); transition:0.3s; border:1px solid rgba(255,255,255,0.1); max-height:90vh; overflow-y:auto; }
+  .modal-overlay.active .modal { transform:translateY(0); }
+  .modal h2 { margin-bottom:15px; color:var(--accent); font-size:20px; }
+  .form-group { margin-bottom:15px; }
+  .form-group label { display:block; font-size:12px; color:var(--muted); margin-bottom:5px; }
+  .form-group input, .form-group select { width:100%; padding:12px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.1); color:white; border-radius:8px; font-size:16px; appearance:none; -webkit-appearance:none; }
+  .form-group select { background-image:url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23e0e0e0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat:no-repeat; background-position:right 12px top 50%; background-size:12px auto; }
+  .form-group input:focus, .form-group select:focus { outline:none; border-color:var(--accent); }
+  .btn { padding:12px 20px; border:none; border-radius:8px; background:var(--accent); color:white; font-weight:600; font-size:16px; cursor:pointer; transition:0.2s; width:100%; }
+  .btn:active { transform:scale(0.98); opacity:0.9; }
+  .btn-outline { background:transparent; border:2px solid var(--accent); }
+  .fab { position:fixed; bottom:20px; right:20px; width:60px; height:60px; border-radius:30px; background:var(--accent); color:white; display:flex; justify-content:center; align-items:center; font-size:30px; box-shadow:0 4px 15px var(--glow); border:none; z-index:50; transition:0.2s; }
+  .fab:active { transform:scale(0.9); }
+  
+  .detail-layout{display:flex;flex-direction:column;gap:20px;}
+  .detail-chart{position:relative;height:200px;width:100%;display:flex;justify-content:center;}
+  .detail-list{display:flex;flex-direction:column;gap:8px;max-height:200px;overflow-y:auto;}
+  .detail-item{display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.2);padding:10px;border-radius:8px;}
+  .detail-item .name{display:flex;align-items:center;gap:8px;font-weight:500;font-size:14px;}
+  .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  .detail-item .amount{font-weight:bold;font-size:14px;}
+  .detail-item .percent{color:var(--muted);font-size:11px;margin-left:5px;}
+  
+  .welcome-overlay { position:fixed; inset:0; background:var(--bg); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:200; padding:30px; text-align:center; transition:0.4s; }
+  .welcome-overlay.hidden { opacity:0; pointer-events:none; }
+  .welcome-icon { font-size:80px; margin-bottom:20px; animation:float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+  .welcome-overlay h2 { font-size:26px; margin-bottom:10px; color:var(--accent); }
+  .welcome-overlay p { color:var(--muted); font-size:14px; margin-bottom:30px; max-width:300px; line-height:1.6; }
 </style>
 </head>
 <body>
 
+<!-- Экран приветствия / импорта -->
+<div class="welcome-overlay" id="welcomeOverlay">
+  <div class="welcome-icon">📊</div>
+  <h2>Мои Финансы</h2>
+  <p>У тебя пока нет данных. Выбери сохраненный JSON-файл, чтобы начать.</p>
+  <button class="btn" style="max-width:280px;" onclick="document.getElementById('fileInput').click()">📥 Импортировать файл</button>
+</div>
+
 <div class="header">
   <h1>Мои Финансы</h1>
   <div class="controls">
-    <button class="icon-btn" onclick="exportData()" title="Экспорт (бэкап)">📤</button>
-    <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Импорт из файла">📥</button>
-    <input type="file" id="fileInput" style="display: none;" accept=".json" onchange="importFromFile(event)">
+    <button class="icon-btn" onclick="exportData()" title="Экспорт">📤</button>
+    <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Импорт">📥</button>
+    <input type="file" id="fileInput" style="display:none;" accept=".json" onchange="importFromFile(event)">
   </div>
 </div>
 
 <div class="dashboard">
-  <div class="card clickable animate-in delay-1" onclick="showDetails('assets')">
+  <div class="card clickable animate-in d1" onclick="showDetails('assets')">
     <div class="card-title">Общие активы</div>
-    <div class="card-value value-green" id="totalAssets">0 ₽</div>
+    <div class="card-value green" id="totalAssets">0 ₽</div>
   </div>
-  <div class="card clickable animate-in delay-2" onclick="showDetails('liabilities')">
+  <div class="card clickable animate-in d2" onclick="showDetails('liabilities')">
     <div class="card-title">Общие пассивы и долги</div>
-    <div class="card-value value-red" id="totalLiabilities">0 ₽</div>
+    <div class="card-value red" id="totalLiabilities">0 ₽</div>
   </div>
-  <div class="card clickable animate-in delay-3" onclick="showDetails('networth')">
+  <div class="card clickable animate-in d3" onclick="showDetails('networth')">
     <div class="card-title">Чистый капитал</div>
     <div class="card-value" id="netWorth">0 ₽</div>
   </div>
-
-  <div class="card animate-in delay-3">
+  <div class="card animate-in d3">
     <div class="card-title">Расходы по месяцам</div>
     <div class="chart-container"><canvas id="expenseChart"></canvas></div>
   </div>
-
-  <div class="card animate-in delay-3">
+  <div class="card animate-in d3">
     <div class="card-title">Транзакции</div>
-    <div class="transactions-list" id="txList"></div>
+    <div class="tx-list" id="txList"></div>
   </div>
 </div>
 
 <button class="fab" onclick="openModal('addTxModal')">+</button>
 
+<!-- Модалка: добавление транзакции -->
 <div class="modal-overlay" id="addTxModal">
   <div class="modal">
     <h2>Новая транзакция</h2>
     <div class="form-group"><label>Дата</label><input type="date" id="txDate" required></div>
-    <div class="form-group">
-      <label>Тип</label>
+    <div class="form-group"><label>Тип</label>
       <select id="txType" onchange="updateCategoryOptions()">
         <option value="expense">Расход</option>
         <option value="income">Доход</option>
       </select>
     </div>
-    <div class="form-group">
-      <label>Категория</label>
-      <select id="txCategory" required></select>
-    </div>
+    <div class="form-group"><label>Категория</label><select id="txCategory" required></select></div>
     <div class="form-group"><label>Описание (необязательно)</label><input type="text" id="txDesc" placeholder="Пятерочка, Такси..."></div>
-    <div class="form-group"><label>Сумма (₽)</label><input type="number" id="txAmount" placeholder="1000" required inputmode="decimal"></div>
+    <div class="form-group"><label>Сумма (₽)</label><input type="number" id="txAmount" placeholder="1000" inputmode="decimal" required></div>
     <button class="btn" onclick="addTransaction()">Добавить</button>
-    <button class="btn btn-outline" style="margin-top: 10px;" onclick="closeModal('addTxModal')">Отмена</button>
+    <button class="btn btn-outline" style="margin-top:10px;" onclick="closeModal('addTxModal')">Отмена</button>
   </div>
 </div>
 
+<!-- Модалка: детализация -->
 <div class="modal-overlay" id="detailsModal">
   <div class="modal">
     <h2 id="detailTitle">Детализация</h2>
     <div class="detail-layout">
-      <div class="detail-chart-wrap"><canvas id="detailChart"></canvas></div>
+      <div class="detail-chart"><canvas id="detailChart"></canvas></div>
       <div class="detail-list" id="detailList"></div>
     </div>
-    <div id="addAssetForm" style="display: none; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px;">
+    <div id="addAssetForm" style="display:none; margin-top:15px; border-top:1px solid rgba(255,255,255,0.1); padding-top:15px;">
       <div class="form-group"><label>Название</label><input type="text" id="assetName" placeholder="Наличные, Тинькофф..."></div>
       <div class="form-group"><label>Сумма (₽)</label><input type="number" id="assetAmount" placeholder="10000" inputmode="decimal"></div>
       <button class="btn" onclick="addAssetOrLiability()">Добавить</button>
     </div>
-    <button class="btn btn-outline" style="margin-top: 15px;" onclick="closeModal('detailsModal')">Закрыть</button>
-  </div>
-</div>
-
-<!-- Модалка экспорта -->
-<div class="modal-overlay" id="exportModal">
-  <div class="modal">
-    <h2>Экспорт данных</h2>
-    <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 10px;">Нажми "Копировать" и сохрани текст в Заметках или отправь себе в Telegram:</p>
-    <textarea id="exportTextArea" style="width: 100%; height: 200px; background: rgba(0,0,0,0.3); border: 1px solid var(--accent); color: white; padding: 10px; border-radius: 8px; font-family: monospace; margin-bottom: 15px; resize: none;" readonly></textarea>
-    <button class="btn" onclick="copyExportData()">📋 Копировать</button>
-    <button class="btn btn-outline" style="margin-top: 10px;" onclick="closeModal('exportModal')">Закрыть</button>
+    <button class="btn btn-outline" style="margin-top:15px;" onclick="closeModal('detailsModal')">Закрыть</button>
   </div>
 </div>
 
 <script>
-  let mainChartInstance = null;
-  let detailChartInstance = null;
-  let currentDetailType = '';
-  
-  // 👇 ТВОИ ДАННЫЕ, ЗАШИТЫЕ В КОД 👇
-  const defaultData = {
-    "assets": [
-      { "name": "Вклад МКБ (Финуслуги)", "amount": 300000 },
-      { "name": "Накопительный счет (Сбер)", "amount": 80106 },
-      { "name": "Дебетовая карта Сбер", "amount": 7808 },
-      { "name": "Долг Ляли", "amount": 55500 },
-      { "name": "Долг Макара", "amount": 143100 },
-      { "name": "Долг Педро (наличными)", "amount": 30000 }
-    ],
-    "liabilities": [
-      { "name": "Кредитка Т-Банк", "amount": 83932 },
-      { "name": "Кредитка Сбер", "amount": 69904 },
-      { "name": "Микрозайм Т-Финанс (за Педро)", "amount": 100000 }
-    ],
-    "transactions": [
-      { "date": "2026-09-01", "type": "expense", "category": "Машина", "description": "Заправка Газпромнефть", "amount": 2410 },
-      { "date": "2026-09-02", "type": "expense", "category": "Продукты", "description": "Пятерочка", "amount": 186 },
-      { "date": "2026-09-06", "type": "expense", "category": "Еда вне дома", "description": "Burger King", "amount": 184 },
-      { "date": "2026-09-09", "type": "income", "category": "Зарплата", "description": "Заработная плата", "amount": 29803 },
-      { "date": "2026-09-09", "type": "income", "category": "ГПХ", "description": "Выплаты по договорам", "amount": 21891 },
-      { "date": "2026-09-12", "type": "expense", "category": "Еда вне дома", "description": "Waf&Tea", "amount": 620 },
-      { "date": "2026-09-19", "type": "expense", "category": "Машина", "description": "Мойка", "amount": 200 },
-      { "date": "2026-09-23", "type": "income", "category": "Аванс", "description": "Аванс по заработной плате", "amount": 32665 },
-      { "date": "2026-09-23", "type": "expense", "category": "Машина", "description": "Заправка АЗС", "amount": 2828 },
-      { "date": "2026-09-28", "type": "expense", "category": "Продукты", "description": "Монетка", "amount": 299 },
-      { "date": "2026-09-30", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "Госуслуги", "amount": 1125 },
-      { "date": "2026-10-01", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1300 },
-      { "date": "2026-10-02", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1000 },
-      { "date": "2026-10-03", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1000 },
-      { "date": "2026-10-04", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 200 },
-      { "date": "2026-10-05", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 550 },
-      { "date": "2026-10-06", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 360 },
-      { "date": "2026-10-07", "type": "expense", "category": "Еда вне дома", "description": "Суши", "amount": 750 },
-      { "date": "2026-10-08", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1500 },
-      { "date": "2026-10-09", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 800 },
-      { "date": "2026-10-10", "type": "income", "category": "Зарплата", "description": "Заработная плата", "amount": 20997 },
-      { "date": "2026-10-10", "type": "income", "category": "ГПХ", "description": "Выплаты по договорам", "amount": 47398 },
-      { "date": "2026-10-10", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1300 },
-      { "date": "2026-10-11", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 450 },
-      { "date": "2026-10-12", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 500 },
-      { "date": "2026-10-13", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1000 },
-      { "date": "2026-10-14", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 260 },
-      { "date": "2026-10-15", "type": "expense", "category": "Продукты", "description": "Продукты", "amount": 1400 },
-      { "date": "2026-10-16", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 160 },
-      { "date": "2026-10-17", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 200 },
-      { "date": "2026-10-18", "type": "expense", "category": "Еда вне дома", "description": "Обед", "amount": 400 },
-      { "date": "2026-10-19", "type": "expense", "category": "Еда вне дома", "description": "Кофе", "amount": 170 },
-      { "date": "2026-10-20", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 200 },
-      { "date": "2026-10-21", "type": "expense", "category": "Еда вне дома", "description": "Обед", "amount": 300 },
-      { "date": "2026-10-22", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 100 },
-      { "date": "2026-10-23", "type": "income", "category": "Аванс", "description": "Аванс по заработной плате", "amount": 32665 },
-      { "date": "2026-10-23", "type": "income", "category": "Премия", "description": "Премия", "amount": 13917 },
-      { "date": "2026-10-23", "type": "expense", "category": "Еда вне дома", "description": "Обед", "amount": 500 },
-      { "date": "2026-10-24", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 100 },
-      { "date": "2026-10-25", "type": "expense", "category": "Еда вне дома", "description": "Перекус", "amount": 200 },
-      { "date": "2026-10-26", "type": "expense", "category": "Еда вне дома", "description": "Ужин", "amount": 800 },
-      { "date": "2026-10-01", "type": "expense", "category": "Машина", "description": "Бензин", "amount": 2880 },
-      { "date": "2026-10-02", "type": "expense", "category": "Машина", "description": "Парковка", "amount": 150 },
-      { "date": "2026-10-03", "type": "expense", "category": "Машина", "description": "Штраф", "amount": 550 },
-      { "date": "2026-10-04", "type": "expense", "category": "Машина", "description": "Бензин", "amount": 2800 },
-      { "date": "2026-10-05", "type": "expense", "category": "Машина", "description": "Прочее", "amount": 300 },
-      { "date": "2026-10-06", "type": "expense", "category": "Машина", "description": "Доставка колес", "amount": 2500 },
-      { "date": "2026-10-07", "type": "expense", "category": "Машина", "description": "Бензин", "amount": 2880 },
-      { "date": "2026-10-08", "type": "expense", "category": "Машина", "description": "Бензин", "amount": 2900 },
-      { "date": "2026-10-09", "type": "expense", "category": "Машина", "description": "Прочее", "amount": 300 },
-      { "date": "2026-10-10", "type": "expense", "category": "Машина", "description": "Штраф", "amount": 2250 },
-      { "date": "2026-10-11", "type": "expense", "category": "Машина", "description": "Штраф", "amount": 550 },
-      { "date": "2026-10-12", "type": "expense", "category": "Машина", "description": "Прочее", "amount": 200 },
-      { "date": "2026-10-13", "type": "expense", "category": "Машина", "description": "Бензин", "amount": 2800 },
-      { "date": "2026-10-01", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "Прочее", "amount": 500 },
-      { "date": "2026-10-02", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "Моющий пылесос", "amount": 6700 },
-      { "date": "2026-10-03", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "Туалет", "amount": 700 },
-      { "date": "2026-10-04", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "Прочее", "amount": 170 },
-      { "date": "2026-10-05", "type": "expense", "category": "Здоровье и красота", "description": "Стрижка", "amount": 600 },
-      { "date": "2026-10-06", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "Ключи", "amount": 300 },
-      { "date": "2026-10-07", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "Коврик", "amount": 300 },
-      { "date": "2026-10-08", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "Налог на имущество", "amount": 2000 },
-      { "date": "2026-10-09", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "Капремонт", "amount": 1266 },
-      { "date": "2026-10-10", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "ЖКХ", "amount": 3550 },
-      { "date": "2026-10-11", "type": "expense", "category": "Связь", "description": "Интернет", "amount": 1080 },
-      { "date": "2026-10-12", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "Прочее", "amount": 400 },
-      { "date": "2026-10-13", "type": "expense", "category": "Здоровье и красота", "description": "Аптека", "amount": 300 },
-      { "date": "2026-10-15", "type": "expense", "category": "Одежда и аксессуары", "description": "Обувь", "amount": 1600 },
-      { "date": "2026-10-16", "type": "expense", "category": "Бытовуха и ЖКХ", "description": "Стайлер", "amount": 9200 },
-      { "date": "2026-11-05", "type": "income", "category": "Отпускные", "description": "Отпускные", "amount": 28001 },
-      { "date": "2026-11-05", "type": "expense", "category": "Долги", "description": "Погашение кредитки Сбер", "amount": 38509 },
-      { "date": "2026-11-05", "type": "expense", "category": "Долги", "description": "Перевод долга Макару", "amount": 13600 },
-      { "date": "2026-11-10", "type": "income", "category": "Зарплата", "description": "Заработная плата", "amount": 32664 },
-      { "date": "2026-11-10", "type": "income", "category": "ГПХ", "description": "Выплаты по договорам", "amount": 23008 },
-      { "date": "2026-11-10", "type": "expense", "category": "Долги", "description": "Минимальный платеж Т-Банк", "amount": 2300 },
-      { "date": "2026-11-10", "type": "expense", "category": "Продукты", "description": "Супермаркеты", "amount": 1224 },
-      { "date": "2026-11-11", "type": "expense", "category": "Здоровье и красота", "description": "Аптека/Косметология", "amount": 3120 },
-      { "date": "2026-11-13", "type": "income", "category": "Страховая выплата", "description": "Выплата на ремонт", "amount": 400000 },
-      { "date": "2026-11-13", "type": "expense", "category": "Долги", "description": "Возврат долга маме", "amount": 85000 },
-      { "date": "2026-11-13", "type": "expense", "category": "Продукты", "description": "Супермаркеты", "amount": 8529 },
-      { "date": "2026-11-13", "type": "expense", "category": "Инвестиции", "description": "Вклад Финуслуги", "amount": 300000 },
-      { "date": "2026-11-13", "type": "expense", "category": "Сбережения", "description": "Накопительный счет", "amount": 80105 },
-      { "date": "2026-11-14", "type": "expense", "category": "Подарки", "description": "Шапка деду", "amount": 1500 }
-    ]
-  };
+  // ─── КОНСТАНТЫ ──────────────────────────────────────────────
+  const EXPENSE_CATS = ["Продукты","Еда вне дома","Машина","Бытовуха и ЖКХ","Здоровье и красота","Одежда и аксессуары","Подарки","Связь","Развлечения и подписки","Долги","Инвестиции","Сбережения","Прочее"];
+  const INCOME_CATS = ["Зарплата","Аванс","ГПХ","Премия","Отпускные","Страховая выплата","Прочее"];
+  const COLORS = ['#6c5ce7','#00b894','#ff7675','#fdcb6e','#74b9ff','#a29bfe','#55efc4','#fab1a0'];
 
-  let appData = JSON.parse(localStorage.getItem('financeData')) || defaultData;
-  if(!localStorage.getItem('financeData')) localStorage.setItem('financeData', JSON.stringify(defaultData));
+  // ─── СОСТОЯНИЕ ──────────────────────────────────────────────
+  let appData = { assets: [], liabilities: [], transactions: [] };
+  let mainChart = null, detailChart = null, currentDetail = '';
 
-  const CHART_COLORS = ['#6c5ce7', '#00b894', '#ff7675', '#fdcb6e', '#74b9ff', '#a29bfe', '#55efc4', '#fab1a0'];
+  // ─── УТИЛИТЫ ────────────────────────────────────────────────
+  const $ = id => document.getElementById(id);
+  const money = n => new Intl.NumberFormat('ru-RU', { style:'currency', currency:'RUB', maximumFractionDigits:0 }).format(n);
+  const save = () => localStorage.setItem('financeData', JSON.stringify(appData));
 
-  const EXPENSE_CATEGORIES = ["Продукты", "Еда вне дома", "Машина", "Бытовуха и ЖКХ", "Здоровье и красота", "Одежда и аксессуары", "Подарки", "Связь", "Развлечения и подписки", "Долги", "Инвестиции", "Сбережения", "Прочее"];
-  const INCOME_CATEGORIES = ["Зарплата", "Аванс", "ГПХ", "Премия", "Отпускные", "Страховая выплата", "Прочее"];
-
-  function updateCategoryOptions() {
-    const type = document.getElementById('txType').value;
-    const categorySelect = document.getElementById('txCategory');
-    categorySelect.innerHTML = '';
-    const categories = type === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES;
-    categories.forEach(cat => {
-      const option = document.createElement('option');
-      option.value = cat;
-      option.textContent = cat;
-      categorySelect.appendChild(option);
-    });
+  // ─── ИНИЦИАЛИЗАЦИЯ ──────────────────────────────────────────
+  function init() {
+    const stored = localStorage.getItem('financeData');
+    if (stored) {
+      appData = JSON.parse(stored);
+      $('welcomeOverlay').classList.add('hidden');
+      render();
+    } else {
+      // Если данных нет — показываем экран приветствия
+      $('welcomeOverlay').classList.remove('hidden');
+    }
   }
 
-  function formatMoney(amount) { return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(amount); }
-  function saveData() { localStorage.setItem('financeData', JSON.stringify(appData)); }
+  // ─── РЕНДЕР ─────────────────────────────────────────────────
+  function render() {
+    const aSum = appData.assets.reduce((s,i) => s + Number(i.amount), 0);
+    const lSum = appData.liabilities.reduce((s,i) => s + Number(i.amount), 0);
+    const net = aSum - lSum;
 
-  function renderDashboard() {
-    const assetsSum = appData.assets.reduce((sum, item) => sum + Number(item.amount), 0);
-    const liabSum = appData.liabilities.reduce((sum, item) => sum + Number(item.amount), 0);
-    const netWorth = assetsSum - liabSum;
-    document.getElementById('totalAssets').textContent = formatMoney(assetsSum);
-    document.getElementById('totalLiabilities').textContent = formatMoney(liabSum);
-    document.getElementById('netWorth').textContent = formatMoney(netWorth);
-    document.getElementById('netWorth').className = `card-value ${netWorth >= 0 ? 'value-green' : 'value-red'}`;
+    $('totalAssets').textContent = money(aSum);
+    $('totalLiabilities').textContent = money(lSum);
+    $('netWorth').textContent = money(net);
+    $('netWorth').className = 'card-value ' + (net >= 0 ? 'green' : 'red');
+
     renderTransactions();
     renderMainChart();
   }
 
   function renderTransactions() {
-    const txList = document.getElementById('txList');
-    txList.innerHTML = '';
-    const sortedTx = [...appData.transactions].sort((a, b) => new Date(b.date) - new Date(a.date));
-    if (sortedTx.length === 0) { txList.innerHTML = '<p style="text-align:center; color:gray; padding: 20px;">Нет транзакций.</p>'; return; }
-    sortedTx.forEach((tx, index) => {
+    const list = $('txList');
+    list.innerHTML = '';
+    const sorted = [...appData.transactions].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+    if (sorted.length === 0) {
+      list.innerHTML = '<p style="text-align:center;color:gray;padding:20px;">Нет транзакций</p>';
+      return;
+    }
+
+    sorted.forEach((tx, i) => {
+      const isInc = tx.type === 'income';
+      const dateStr = new Date(tx.date).toLocaleDateString('ru-RU');
+      const idx = appData.transactions.indexOf(tx);
       const el = document.createElement('div');
       el.className = 'tx-item';
-      el.style.animationDelay = `${index * 0.05}s`;
-      const isIncome = tx.type === 'income';
-      const sign = isIncome ? '+' : '-';
-      const colorClass = isIncome ? 'tx-income' : 'tx-expense';
-      const dateObj = new Date(tx.date);
-      const dateStr = isNaN(dateObj) ? tx.date : dateObj.toLocaleDateString('ru-RU');
-      const originalIndex = appData.transactions.indexOf(tx);
+      el.style.animationDelay = (i * 0.04) + 's';
       el.innerHTML = `
         <div class="tx-info">
           <span class="tx-desc">${tx.description || tx.category}</span>
           <span class="tx-date">${dateStr} · ${tx.category}</span>
         </div>
         <div class="tx-right">
-          <div class="tx-amount ${colorClass}">${sign}${formatMoney(tx.amount)}</div>
-          <button class="del-btn" onclick="deleteTransaction(${originalIndex})">🗑️</button>
-        </div>
-      `;
-      txList.appendChild(el);
+          <div class="tx-amount ${isInc ? 'green' : 'red'}">${isInc ? '+' : '-'}${money(tx.amount)}</div>
+          <button class="del-btn" onclick="deleteTx(${idx})">🗑️</button>
+        </div>`;
+      list.appendChild(el);
     });
   }
 
   function renderMainChart() {
-    const ctx = document.getElementById('expenseChart').getContext('2d');
-    const monthlyExpenses = {};
-    appData.transactions.forEach(tx => {
-      if (tx.type === 'expense') {
-        const monthKey = tx.date.substring(0, 7); 
-        monthlyExpenses[monthKey] = (monthlyExpenses[monthKey] || 0) + Number(tx.amount);
+    const ctx = $('expenseChart').getContext('2d');
+    const monthly = {};
+    appData.transactions.forEach(t => {
+      if (t.type === 'expense') {
+        const key = t.date.substring(0, 7);
+        monthly[key] = (monthly[key] || 0) + Number(t.amount);
       }
     });
-    const sortedMonths = Object.keys(monthlyExpenses).sort();
-    const monthNames = { '01': 'Янв', '02': 'Фев', '03': 'Мар', '04': 'Апр', '05': 'Май', '06': 'Июн', '07': 'Июл', '08': 'Авг', '09': 'Сен', '10': 'Окт', '11': 'Ноя', '12': 'Дек' };
-    const labels = sortedMonths.map(m => { const [year, month] = m.split('-'); return `${monthNames[month] || month} ${year.substring(2)}`; });
-    const data = sortedMonths.map(m => monthlyExpenses[m]);
-    if (mainChartInstance) mainChartInstance.destroy();
-    mainChartInstance = new Chart(ctx, {
+    const months = Object.keys(monthly).sort();
+    const names = {'01':'Янв','02':'Фев','03':'Мар','04':'Апр','05':'Май','06':'Июн','07':'Июл','08':'Авг','09':'Сен','10':'Окт','11':'Ноя','12':'Дек'};
+    const labels = months.map(m => { const [y,mo] = m.split('-'); return `${names[mo]||mo} ${y.substring(2)}`; });
+    const data = months.map(m => monthly[m]);
+
+    if (mainChart) mainChart.destroy();
+    mainChart = new Chart(ctx, {
       type: 'bar',
-      data: { labels: labels, datasets: [{ label: 'Расходы (₽)', data: data, backgroundColor: 'rgba(108, 92, 231, 0.7)', borderColor: '#6c5ce7', borderWidth: 2, borderRadius: 6 }] },
-      options: { responsive: true, maintainAspectRatio: false, animation: { duration: 1000 }, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a8a9a' } }, x: { grid: { display: false }, ticks: { color: '#e0e0e0', font: { weight: 'bold' } } } } }
+      data: { labels, datasets: [{ label:'Расходы', data, backgroundColor:'rgba(108,92,231,0.7)', borderColor:'#6c5ce7', borderWidth:2, borderRadius:6 }] },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{ y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'#8a8a9a'}}, x:{grid:{display:false},ticks:{color:'#e0e0e0',font:{weight:'bold'}}} } }
     });
   }
 
-  function addTransaction() {
-    const date = document.getElementById('txDate').value;
-    const type = document.getElementById('txType').value;
-    const category = document.getElementById('txCategory').value;
-    const desc = document.getElementById('txDesc').value;
-    const amount = parseFloat(document.getElementById('txAmount').value);
-    if (!date || !category || isNaN(amount) || amount <= 0) { alert('Заполните все поля!'); return; }
-    appData.transactions.push({ date, type, category, description: desc || category, amount });
-    saveData(); renderDashboard(); closeModal('addTxModal');
-    document.getElementById('txDesc').value = ''; document.getElementById('txAmount').value = '';
-    updateCategoryOptions();
-  }
-
-  function deleteTransaction(index) {
-    if (confirm('Удалить эту транзакцию?')) {
-      appData.transactions.splice(index, 1);
-      saveData(); renderDashboard();
-      if (currentDetailType === 'networth') showDetails('networth');
-    }
-  }
-
+  // ─── ДЕТАЛИЗАЦИЯ ────────────────────────────────────────────
   function showDetails(type) {
-    currentDetailType = type;
-    const modal = document.getElementById('detailsModal');
-    const title = document.getElementById('detailTitle');
-    const listContainer = document.getElementById('detailList');
-    const ctx = document.getElementById('detailChart').getContext('2d');
-    const addForm = document.getElementById('addAssetForm');
-    let items = []; let total = 0; let canAdd = false;
-    if (type === 'assets') { title.textContent = 'Активы'; items = appData.assets; total = items.reduce((s, i) => s + Number(i.amount), 0); canAdd = true; }
-    else if (type === 'liabilities') { title.textContent = 'Пассивы'; items = appData.liabilities; total = items.reduce((s, i) => s + Number(i.amount), 0); canAdd = true; }
-    else if (type === 'networth') {
-      title.textContent = 'Чистый капитал';
-      const aSum = appData.assets.reduce((s, i) => s + Number(i.amount), 0);
-      const lSum = appData.liabilities.reduce((s, i) => s + Number(i.amount), 0);
-      items = [{ name: 'Активы (+)', amount: aSum, color: CHART_COLORS[1] }, { name: 'Долги (-)', amount: lSum, color: CHART_COLORS[2] }];
-      total = aSum + lSum; canAdd = false;
+    currentDetail = type;
+    const modal = $('detailsModal');
+    const list = $('detailList');
+    const addForm = $('addAssetForm');
+    let items = [], total = 0, canAdd = false;
+
+    if (type === 'assets') {
+      $('detailTitle').textContent = 'Активы';
+      items = appData.assets;
+      total = items.reduce((s,i) => s + Number(i.amount), 0);
+      canAdd = true;
+    } else if (type === 'liabilities') {
+      $('detailTitle').textContent = 'Пассивы';
+      items = appData.liabilities;
+      total = items.reduce((s,i) => s + Number(i.amount), 0);
+      canAdd = true;
+    } else {
+      $('detailTitle').textContent = 'Чистый капитал';
+      const a = appData.assets.reduce((s,i) => s + Number(i.amount), 0);
+      const l = appData.liabilities.reduce((s,i) => s + Number(i.amount), 0);
+      items = [{ name:'Активы (+)', amount:a, color:COLORS[1] }, { name:'Долги (-)', amount:l, color:COLORS[2] }];
+      total = a + l;
     }
+
     addForm.style.display = canAdd ? 'block' : 'none';
-    if (items.length === 0) { listContainer.innerHTML = '<p style="text-align:center; color:gray;">Нет данных</p>'; if (detailChartInstance) detailChartInstance.destroy(); modal.classList.add('active'); return; }
-    const sortedItems = [...items].sort((a, b) => b.amount - a.amount);
-    listContainer.innerHTML = '';
-    sortedItems.forEach((item, index) => {
-      const percent = total > 0 ? ((item.amount / total) * 100).toFixed(1) : 0;
-      const color = item.color || CHART_COLORS[index % CHART_COLORS.length];
-      const el = document.createElement('div'); el.className = 'detail-item';
-      let delBtnHtml = '';
-      if (type === 'assets' || type === 'liabilities') {
-        const originalIndex = items.indexOf(item);
-        delBtnHtml = `<button class="del-btn" onclick="deleteAssetOrLiability('${type}', ${originalIndex}); showDetails('${type}');">🗑️</button>`;
-      }
-      el.innerHTML = `<div class="name"><span class="color-dot" style="background:${color}"></span>${item.name}</div><div style="display:flex; align-items:center; gap:5px;"><span class="amount">${formatMoney(item.amount)}</span><span class="percent">${percent}%</span>${delBtnHtml}</div>`;
-      listContainer.appendChild(el);
+    list.innerHTML = '';
+
+    if (items.length === 0) {
+      list.innerHTML = '<p style="text-align:center;color:gray;">Нет данных</p>';
+      if (detailChart) detailChart.destroy();
+      modal.classList.add('active');
+      return;
+    }
+
+    [...items].sort((a,b) => b.amount - a.amount).forEach((item, i) => {
+      const pct = total > 0 ? ((item.amount / total) * 100).toFixed(1) : 0;
+      const color = item.color || COLORS[i % COLORS.length];
+      const idx = items.indexOf(item);
+      const el = document.createElement('div');
+      el.className = 'detail-item';
+      const delBtn = (type === 'assets' || type === 'liabilities')
+        ? `<button class="del-btn" onclick="deleteAsset('${type}',${idx})">🗑️</button>` : '';
+      el.innerHTML = `
+        <div class="name"><span class="dot" style="background:${color}"></span>${item.name}</div>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span class="amount">${money(item.amount)}</span>
+          <span class="percent">${pct}%</span>${delBtn}
+        </div>`;
+      list.appendChild(el);
     });
-    if (detailChartInstance) detailChartInstance.destroy();
-    detailChartInstance = new Chart(ctx, {
+
+    const ctx = $('detailChart').getContext('2d');
+    if (detailChart) detailChart.destroy();
+    const sorted = [...items].sort((a,b) => b.amount - a.amount);
+    detailChart = new Chart(ctx, {
       type: type === 'networth' ? 'doughnut' : 'pie',
-      data: { labels: sortedItems.map(i => i.name), datasets: [{ data: sortedItems.map(i => i.amount), backgroundColor: sortedItems.map((i, idx) => i.color || CHART_COLORS[idx % CHART_COLORS.length]), borderWidth: 0, hoverOffset: 5 }] },
-      options: { responsive: true, maintainAspectRatio: false, animation: { animateScale: true, animateRotate: true, duration: 800 }, plugins: { legend: { display: false } }, cutout: type === 'networth' ? '70%' : 0 }
+      data: { labels: sorted.map(i => i.name), datasets: [{ data: sorted.map(i => i.amount), backgroundColor: sorted.map((i,idx) => i.color || COLORS[idx % COLORS.length]), borderWidth:0 }] },
+      options: { responsive:true, maintainAspectRatio:false, animation:{animateScale:true,animateRotate:true,duration:800}, plugins:{legend:{display:false}}, cutout: type === 'networth' ? '70%' : 0 }
     });
     modal.classList.add('active');
   }
 
+  // ─── ДЕЙСТВИЯ ───────────────────────────────────────────────
+  function addTransaction() {
+    const date = $('txDate').value;
+    const type = $('txType').value;
+    const cat = $('txCategory').value;
+    const desc = $('txDesc').value;
+    const amt = parseFloat($('txAmount').value);
+    if (!date || !cat || isNaN(amt) || amt <= 0) { alert('Заполни все поля!'); return; }
+    appData.transactions.push({ date, type, category: cat, description: desc || cat, amount: amt });
+    save(); render(); closeModal('addTxModal');
+    $('txDesc').value = ''; $('txAmount').value = '';
+  }
+
+  function deleteTx(idx) {
+    if (!confirm('Удалить транзакцию?')) return;
+    appData.transactions.splice(idx, 1);
+    save(); render();
+    if (currentDetail === 'networth') showDetails('networth');
+  }
+
   function addAssetOrLiability() {
-    const name = document.getElementById('assetName').value;
-    const amount = parseFloat(document.getElementById('assetAmount').value);
-    if (!name || isNaN(amount)) { alert('Введите название и сумму'); return; }
-    if (currentDetailType === 'assets') appData.assets.push({ name, amount });
-    else if (currentDetailType === 'liabilities') appData.liabilities.push({ name, amount });
-    saveData(); renderDashboard(); showDetails(currentDetailType);
-    document.getElementById('assetName').value = ''; document.getElementById('assetAmount').value = '';
+    const name = $('assetName').value;
+    const amt = parseFloat($('assetAmount').value);
+    if (!name || isNaN(amt)) { alert('Введите название и сумму'); return; }
+    if (currentDetail === 'assets') appData.assets.push({ name, amount:amt });
+    else appData.liabilities.push({ name, amount:amt });
+    save(); render(); showDetails(currentDetail);
+    $('assetName').value = ''; $('assetAmount').value = '';
   }
 
-  function deleteAssetOrLiability(type, index) {
-    if (!confirm('Удалить эту запись?')) return;
-    if (type === 'assets') appData.assets.splice(index, 1); else appData.liabilities.splice(index, 1);
-    saveData(); renderDashboard();
+  function deleteAsset(type, idx) {
+    if (!confirm('Удалить запись?')) return;
+    if (type === 'assets') appData.assets.splice(idx, 1);
+    else appData.liabilities.splice(idx, 1);
+    save(); render(); showDetails(type);
   }
 
-  // 👇 НОВАЯ ЛОГИКА ЭКСПОРТА ДЛЯ IOS 👇
-  async function exportData() {
-    const jsonString = JSON.stringify(appData, null, 2);
-    const fileName = `finance_backup_${new Date().toISOString().split('T')[0]}.json`;
-
-    // Пытаемся использовать системное окно "Поделиться" (работает на iOS)
-    if (navigator.share) {
-        try {
-            const file = new File([jsonString], fileName, { type: 'application/json' });
-            await navigator.share({
-                title: 'Бэкап финансов',
-                text: 'Мои финансовые данные',
-                files: [file]
-            });
-            return; 
-        } catch (err) {
-            console.log('Web Share отменен:', err);
-        }
-    }
-
-    // Фоллбэк: Показываем окно с текстом для копирования
-    document.getElementById('exportTextArea').value = jsonString;
-    openModal('exportModal');
-  }
-
-  function copyExportData() {
-    const textarea = document.getElementById('exportTextArea');
-    textarea.select();
-    textarea.setSelectionRange(0, 99999);
-    navigator.clipboard.writeText(textarea.value).then(() => {
-        alert('✅ Данные скопированы! Можешь вставить их в Заметки или Telegram.');
-        closeModal('exportModal');
-    }).catch(err => {
-        alert('❌ Не удалось скопировать автоматически. Выдели текст и нажми "Копировать".');
+  function updateCategoryOptions() {
+    const type = $('txType').value;
+    const select = $('txCategory');
+    select.innerHTML = '';
+    const cats = type === 'expense' ? EXPENSE_CATS : INCOME_CATS;
+    cats.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      select.appendChild(opt);
     });
   }
 
-  function importFromFile(event) {
-    const file = event.target.files[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
+  // ─── ЭКСПОРТ / ИМПОРТ ───────────────────────────────────────
+  async function exportData() {
+    const json = JSON.stringify(appData, null, 2);
+    const fileName = `finance_${new Date().toISOString().split('T')[0]}.json`;
+
+    // iOS Share Sheet
+    if (navigator.share && navigator.canShare) {
       try {
-        const parsed = JSON.parse(e.target.result);
-        if (!parsed.assets || !parsed.transactions) { alert('Ошибка: неверный формат файла'); return; }
-        appData = parsed; saveData(); renderDashboard(); alert('✅ Данные загружены!');
-      } catch (err) { alert('❌ Ошибка чтения файла'); }
-    };
-    reader.readAsText(file); event.target.value = '';
+        const file = new File([json], fileName, { type: 'application/json' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ files: [file], title: 'Бэкап' });
+          return;
+        }
+      } catch (e) { console.log('Share отменен'); }
+    }
+
+    // Fallback: скачивание файла
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = fileName;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
 
+  function importFromFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        if (!parsed.assets || !parsed.transactions) { alert('Неверный формат файла'); return; }
+        appData = parsed;
+        save(); render();
+        $('welcomeOverlay').classList.add('hidden');
+        alert('✅ Данные загружены!');
+      } catch { alert('❌ Ошибка чтения файла'); }
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
+  // ─── МОДАЛКИ ────────────────────────────────────────────────
   function openModal(id) {
     if (id === 'addTxModal') {
-      document.getElementById('txDate').value = new Date().toISOString().split('T')[0];
+      $('txDate').value = new Date().toISOString().split('T')[0];
       updateCategoryOptions();
     }
-    document.getElementById(id).classList.add('active');
+    $(id).classList.add('active');
   }
-  function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-  document.querySelectorAll('.modal-overlay').forEach(overlay => {
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.classList.remove('active'); });
+  function closeModal(id) { $(id).classList.remove('active'); }
+  document.querySelectorAll('.modal-overlay').forEach(o => {
+    o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); });
   });
-  
-  renderDashboard();
+
+  // ─── СТАРТ ──────────────────────────────────────────────────
+  init();
 </script>
 </body>
 </html>
