@@ -1,0 +1,15 @@
+{
+  "name": "Мои Финансы",
+  "short_name": "Финансы",
+  "start_url": "./finance.html",
+  "display": "standalone",
+  "background_color": "#0f0f15",
+  "theme_color": "#6c5ce7",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2489/2489756.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
