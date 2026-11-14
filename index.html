@@ -27,7 +27,7 @@
   .card { background:var(--card); backdrop-filter:blur(10px); border:1px solid rgba(255,255,255,0.05); border-radius:16px; padding:20px; transition:0.2s; position:relative; overflow:hidden; }
   .card.clickable { cursor:pointer; }
   .card.clickable:active { transform:scale(0.98); border-color:rgba(108,92,231,0.6); }
-  .card-title { font-size:12px; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px; }
+  .card-title { font-size:12px; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:1px; display:flex; justify-content:space-between; align-items:center; }
   .card-value { font-size:28px; font-weight:700; }
   .green{color:var(--green);} .red{color:var(--red);}
   
@@ -36,10 +36,26 @@
   .tx-item { display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid rgba(255,255,255,0.05); background:rgba(0,0,0,0.1); border-radius:8px; margin-bottom:8px; animation:fadeUp 0.3s ease-out forwards; opacity:0; }
   .tx-info{display:flex;flex-direction:column;flex:1;}
   .tx-desc{font-weight:600;font-size:15px;} .tx-date{font-size:12px;color:var(--muted);margin-top:4px;}
-  .tx-right{display:flex;align-items:center;gap:10px;}
-  .tx-amount{font-weight:bold;font-size:15px;text-align:right;}
-  .del-btn{background:none;border:none;color:var(--muted);font-size:18px;cursor:pointer;padding:5px;}
+  .tx-right{display:flex;align-items:center;gap:5px;}
+  .tx-amount{font-weight:bold;font-size:15px;text-align:right; margin-right:5px;}
+  .act-btn{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:5px;}
+  .act-btn:active{color:var(--accent);}
   .del-btn:active{color:var(--red);}
+
+  /* Поиск */
+  .search-input {
+    width: 100%; padding: 8px 12px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1);
+    color: white; border-radius: 8px; font-size: 14px; margin-bottom: 10px;
+  }
+  .search-input:focus { outline: none; border-color: var(--accent); }
+
+  /* Toast уведомления */
+  .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+  .toast { background: var(--card); color: white; padding: 12px 20px; border-radius: 12px; border-left: 4px solid var(--accent); box-shadow: 0 5px 15px rgba(0,0,0,0.5); font-size: 14px; font-weight: 500; animation: slideDown 0.3s ease, fadeOut 0.3s ease 2.7s forwards; opacity: 0; backdrop-filter: blur(10px); white-space: nowrap; }
+  .toast.error { border-left-color: var(--red); }
+  .toast.success { border-left-color: var(--green); }
+  @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
   
   .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:flex-end; opacity:0; pointer-events:none; transition:0.3s; z-index:100; backdrop-filter:blur(5px); }
   .modal-overlay.active { opacity:1; pointer-events:auto; }
@@ -76,7 +92,8 @@
 </head>
 <body>
 
-<!-- Экран приветствия / импорта -->
+<div class="toast-container" id="toastContainer"></div>
+
 <div class="welcome-overlay" id="welcomeOverlay">
   <div class="welcome-icon">📊</div>
   <h2>Мои Финансы</h2>
@@ -111,14 +128,14 @@
     <div class="chart-container"><canvas id="expenseChart"></canvas></div>
   </div>
   <div class="card animate-in d3">
-    <div class="card-title">Транзакции</div>
+    <div class="card-title">Транзакции <span id="txCount" style="color:var(--accent);"></span></div>
+    <input type="text" class="search-input" id="searchInput" placeholder="🔍 Поиск по описанию или категории..." oninput="renderTransactions()">
     <div class="tx-list" id="txList"></div>
   </div>
 </div>
 
 <button class="fab" onclick="openModal('addTxModal')">+</button>
 
-<!-- Модалка: добавление транзакции -->
 <div class="modal-overlay" id="addTxModal">
   <div class="modal">
     <h2>Новая транзакция</h2>
@@ -137,7 +154,6 @@
   </div>
 </div>
 
-<!-- Модалка: детализация -->
 <div class="modal-overlay" id="detailsModal">
   <div class="modal">
     <h2 id="detailTitle">Детализация</h2>
@@ -155,21 +171,27 @@
 </div>
 
 <script>
-  // ─── КОНСТАНТЫ ──────────────────────────────────────────────
   const EXPENSE_CATS = ["Продукты","Еда вне дома","Машина","Бытовуха и ЖКХ","Здоровье и красота","Одежда и аксессуары","Подарки","Связь","Развлечения и подписки","Долги","Инвестиции","Сбережения","Прочее"];
   const INCOME_CATS = ["Зарплата","Аванс","ГПХ","Премия","Отпускные","Страховая выплата","Прочее"];
   const COLORS = ['#6c5ce7','#00b894','#ff7675','#fdcb6e','#74b9ff','#a29bfe','#55efc4','#fab1a0'];
 
-  // ─── СОСТОЯНИЕ ──────────────────────────────────────────────
   let appData = { assets: [], liabilities: [], transactions: [] };
   let mainChart = null, detailChart = null, currentDetail = '';
 
-  // ─── УТИЛИТЫ ────────────────────────────────────────────────
   const $ = id => document.getElementById(id);
   const money = n => new Intl.NumberFormat('ru-RU', { style:'currency', currency:'RUB', maximumFractionDigits:0 }).format(n);
   const save = () => localStorage.setItem('financeData', JSON.stringify(appData));
 
-  // ─── ИНИЦИАЛИЗАЦИЯ ──────────────────────────────────────────
+  // 👇 НОВЫЕ ВСПЛЫВАЮЩИЕ УВЕДОМЛЕНИЯ (TOAST) 👇
+  function showToast(msg, type = 'success') {
+    const container = $('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
   function init() {
     const stored = localStorage.getItem('financeData');
     if (stored) {
@@ -177,12 +199,10 @@
       $('welcomeOverlay').classList.add('hidden');
       render();
     } else {
-      // Если данных нет — показываем экран приветствия
       $('welcomeOverlay').classList.remove('hidden');
     }
   }
 
-  // ─── РЕНДЕР ─────────────────────────────────────────────────
   function render() {
     const aSum = appData.assets.reduce((s,i) => s + Number(i.amount), 0);
     const lSum = appData.liabilities.reduce((s,i) => s + Number(i.amount), 0);
@@ -197,13 +217,27 @@
     renderMainChart();
   }
 
+  // 👇 ТЕПЕРЬ С ПОИСКОМ 👇
   function renderTransactions() {
     const list = $('txList');
+    const query = ($('searchInput')?.value || '').toLowerCase();
     list.innerHTML = '';
-    const sorted = [...appData.transactions].sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    let filtered = appData.transactions;
+
+    if (query) {
+      filtered = filtered.filter(tx => 
+        (tx.description || '').toLowerCase().includes(query) || 
+        (tx.category || '').toLowerCase().includes(query)
+      );
+    }
+
+    $('txCount').textContent = `(${filtered.length})`;
+
+    const sorted = [...filtered].sort((a,b) => new Date(b.date) - new Date(a.date));
 
     if (sorted.length === 0) {
-      list.innerHTML = '<p style="text-align:center;color:gray;padding:20px;">Нет транзакций</p>';
+      list.innerHTML = '<p style="text-align:center;color:gray;padding:20px;">Ничего не найдено</p>';
       return;
     }
 
@@ -221,7 +255,8 @@
         </div>
         <div class="tx-right">
           <div class="tx-amount ${isInc ? 'green' : 'red'}">${isInc ? '+' : '-'}${money(tx.amount)}</div>
-          <button class="del-btn" onclick="deleteTx(${idx})">🗑️</button>
+          <button class="act-btn" onclick="duplicateTx(${idx})" title="Дублировать">📋</button>
+          <button class="act-btn del-btn" onclick="deleteTx(${idx})" title="Удалить">🗑️</button>
         </div>`;
       list.appendChild(el);
     });
@@ -249,7 +284,6 @@
     });
   }
 
-  // ─── ДЕТАЛИЗАЦИЯ ────────────────────────────────────────────
   function showDetails(type) {
     currentDetail = type;
     const modal = $('detailsModal');
@@ -292,7 +326,7 @@
       const el = document.createElement('div');
       el.className = 'detail-item';
       const delBtn = (type === 'assets' || type === 'liabilities')
-        ? `<button class="del-btn" onclick="deleteAsset('${type}',${idx})">🗑️</button>` : '';
+        ? `<button class="act-btn del-btn" onclick="deleteAsset('${type}',${idx})">🗑️</button>` : '';
       el.innerHTML = `
         <div class="name"><span class="dot" style="background:${color}"></span>${item.name}</div>
         <div style="display:flex;align-items:center;gap:5px;">
@@ -313,34 +347,46 @@
     modal.classList.add('active');
   }
 
-  // ─── ДЕЙСТВИЯ ───────────────────────────────────────────────
   function addTransaction() {
     const date = $('txDate').value;
     const type = $('txType').value;
     const cat = $('txCategory').value;
     const desc = $('txDesc').value;
     const amt = parseFloat($('txAmount').value);
-    if (!date || !cat || isNaN(amt) || amt <= 0) { alert('Заполни все поля!'); return; }
+    if (!date || !cat || isNaN(amt) || amt <= 0) { showToast('Заполни все поля!', 'error'); return; }
+    
     appData.transactions.push({ date, type, category: cat, description: desc || cat, amount: amt });
     save(); render(); closeModal('addTxModal');
     $('txDesc').value = ''; $('txAmount').value = '';
+    showToast('Транзакция добавлена');
+  }
+
+  // 👇 НОВАЯ ФУНКЦИЯ ДУБЛИРОВАНИЯ 👇
+  function duplicateTx(idx) {
+    const tx = appData.transactions[idx];
+    const today = new Date().toISOString().split('T')[0];
+    appData.transactions.push({ ...tx, date: today });
+    save(); render();
+    showToast('Транзакция скопирована на сегодня');
   }
 
   function deleteTx(idx) {
     if (!confirm('Удалить транзакцию?')) return;
     appData.transactions.splice(idx, 1);
     save(); render();
+    showToast('Удалено', 'error');
     if (currentDetail === 'networth') showDetails('networth');
   }
 
   function addAssetOrLiability() {
     const name = $('assetName').value;
     const amt = parseFloat($('assetAmount').value);
-    if (!name || isNaN(amt)) { alert('Введите название и сумму'); return; }
+    if (!name || isNaN(amt)) { showToast('Введите название и сумму', 'error'); return; }
     if (currentDetail === 'assets') appData.assets.push({ name, amount:amt });
     else appData.liabilities.push({ name, amount:amt });
     save(); render(); showDetails(currentDetail);
     $('assetName').value = ''; $('assetAmount').value = '';
+    showToast('Добавлено');
   }
 
   function deleteAsset(type, idx) {
@@ -348,6 +394,7 @@
     if (type === 'assets') appData.assets.splice(idx, 1);
     else appData.liabilities.splice(idx, 1);
     save(); render(); showDetails(type);
+    showToast('Удалено', 'error');
   }
 
   function updateCategoryOptions() {
@@ -362,12 +409,10 @@
     });
   }
 
-  // ─── ЭКСПОРТ / ИМПОРТ ───────────────────────────────────────
   async function exportData() {
     const json = JSON.stringify(appData, null, 2);
     const fileName = `finance_${new Date().toISOString().split('T')[0]}.json`;
 
-    // iOS Share Sheet
     if (navigator.share && navigator.canShare) {
       try {
         const file = new File([json], fileName, { type: 'application/json' });
@@ -375,10 +420,9 @@
           await navigator.share({ files: [file], title: 'Бэкап' });
           return;
         }
-      } catch (e) { console.log('Share отменен'); }
+      } catch (e) {}
     }
 
-    // Fallback: скачивание файла
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -386,6 +430,7 @@
     document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+    showToast('Файл сформирован');
   }
 
   function importFromFile(event) {
@@ -395,18 +440,17 @@
     reader.onload = e => {
       try {
         const parsed = JSON.parse(e.target.result);
-        if (!parsed.assets || !parsed.transactions) { alert('Неверный формат файла'); return; }
+        if (!parsed.assets || !parsed.transactions) { showToast('Неверный формат файла', 'error'); return; }
         appData = parsed;
         save(); render();
         $('welcomeOverlay').classList.add('hidden');
-        alert('✅ Данные загружены!');
-      } catch { alert('❌ Ошибка чтения файла'); }
+        showToast('Данные загружены!');
+      } catch { showToast('Ошибка чтения файла', 'error'); }
     };
     reader.readAsText(file);
     event.target.value = '';
   }
 
-  // ─── МОДАЛКИ ────────────────────────────────────────────────
   function openModal(id) {
     if (id === 'addTxModal') {
       $('txDate').value = new Date().toISOString().split('T')[0];
@@ -419,7 +463,6 @@
     o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); });
   });
 
-  // ─── СТАРТ ──────────────────────────────────────────────────
   init();
 </script>
 </body>
