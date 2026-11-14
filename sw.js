@@ -1,6 +1,7 @@
-const CACHE_NAME = 'finance-cache-v2';
+const CACHE_NAME = 'finance-cache-v3';
 const ASSETS = [
-  './finance.html',
+  './',
+  './index.html',
   './manifest.json',
   'https://cdn.jsdelivr.net/npm/chart.js'
 ];
