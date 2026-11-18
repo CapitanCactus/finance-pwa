@@ -5,10 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Мои Финансы 2.0</title>
+<title>Мои Финансы 2.4</title>
 <link rel="manifest" href="manifest.json">
 <script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
-<!-- Внешние библиотеки -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
@@ -17,25 +16,35 @@
     --bg: #0f0f15; --card: rgba(30,30,45,0.7); --accent: #6c5ce7; --glow: rgba(108,92,231,0.4); 
     --text: #e0e0e0; --muted: #8a8a9a; --green: #00b894; --red: #ff7675; --border: rgba(255,255,255,0.1); 
   }
-  
-  /* Светлая тема */
   [data-theme="light"] {
     --bg: #f5f6fa; --card: rgba(255,255,255,0.9); --accent: #6c5ce7; --glow: rgba(108,92,231,0.2); 
     --text: #2f3640; --muted: #718096; --green: #00b894; --red: #e74c3c; --border: rgba(0,0,0,0.1);
   }
-
   * { margin:0; padding:0; box-sizing:border-box; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; -webkit-tap-highlight-color:transparent; }
-  body { background:var(--bg); color:var(--text); min-height:100vh; padding:20px; padding-bottom:80px; transition: background 0.3s, color 0.3s; background-image: radial-gradient(circle at 15% 50%, var(--glow), transparent 25%), radial-gradient(circle at 85% 30%, rgba(0,184,148,0.05), transparent 25%); }
+  body { background:var(--bg); color:var(--text); min-height:100vh; padding:20px; padding-bottom:80px; transition: 0.3s; background-image: radial-gradient(circle at 15% 50%, var(--glow), transparent 25%), radial-gradient(circle at 85% 30%, rgba(0,184,148,0.05), transparent 25%); }
   
   @keyframes fadeUp { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
   .animate-in { animation:fadeUp 0.4s ease-out forwards; opacity:0; }
   .d1{animation-delay:0.1s;} .d2{animation-delay:0.2s;} .d3{animation-delay:0.3s;}
 
+  /* Хедер и Бургер-меню */
   .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; max-width:800px; margin: 0 auto 20px; }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .burger-btn { background:var(--card); border:1px solid var(--border); color:var(--text); font-size:20px; cursor:pointer; padding:6px 12px; border-radius:8px; transition:0.2s; display:flex; align-items:center; justify-content:center; }
+  .burger-btn:active { transform:scale(0.95); background:var(--accent); color:white; }
   .header h1 { font-size:22px; font-weight:700; background:linear-gradient(90deg, var(--text), var(--accent)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  
   .controls { display:flex; gap:8px; }
   .icon-btn { padding:8px 10px; border-radius:8px; background:var(--card); border:1px solid var(--border); color:var(--text); cursor:pointer; font-size:16px; transition:0.2s; display:flex; align-items:center; justify-content:center; }
   .icon-btn:active { transform:scale(0.95); background:var(--accent); color:white; }
+
+  /* Боковое меню (Drawer) */
+  .sidebar-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; opacity: 0; pointer-events: none; transition: 0.3s; backdrop-filter: blur(2px); }
+  .sidebar-overlay.open { opacity: 1; pointer-events: auto; }
+  .sidebar { position: fixed; top: 0; left: -100%; width: 85%; max-width: 350px; height: 100vh; background: var(--bg); z-index: 1000; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow-y: auto; border-right: 1px solid var(--border); box-shadow: 5px 0 25px rgba(0,0,0,0.5); padding: 20px; }
+  .sidebar.open { left: 0; }
+  .sidebar h2 { color: var(--accent); margin-bottom: 20px; font-size: 20px; display:flex; justify-content:space-between; align-items:center; }
+  .sidebar .card { background: var(--card); border: 1px solid var(--border); margin-bottom: 15px; padding: 15px; }
 
   .dashboard { display:grid; grid-template-columns:1fr; gap:15px; max-width:800px; margin:0 auto; }
   .card { background:var(--card); backdrop-filter:blur(10px); border:1px solid var(--border); border-radius:16px; padding:20px; transition:0.2s; position:relative; overflow:hidden; }
@@ -45,23 +54,19 @@
   .card-value { font-size:28px; font-weight:700; }
   .green{color:var(--green);} .red{color:var(--red);}
 
-  /* Умные инсайты */
   .insights-box { background: linear-gradient(135deg, rgba(108,92,231,0.1), rgba(0,184,148,0.1)); border-left: 4px solid var(--accent); font-size: 14px; line-height: 1.5; color: var(--text); }
   
-  /* Цели */
   .goal-item { margin-bottom: 12px; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 8px; }
   .goal-header { display:flex; justify-content:space-between; font-size:14px; margin-bottom:5px; font-weight:600; }
   .goal-progress { width:100%; height:8px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden; }
   .goal-bar { height:100%; background:var(--accent); transition:0.3s; }
 
-  /* Поиск с крестиком */
   .search-wrap { position:relative; margin-bottom:10px; }
   .search-input { width:100%; padding:10px 35px 10px 12px; background:rgba(0,0,0,0.2); border:1px solid var(--border); color:var(--text); border-radius:8px; font-size:14px; }
   [data-theme="light"] .search-input { background: #fff; }
   .search-input:focus { outline:none; border-color:var(--accent); }
   .clear-search { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--muted); font-size:16px; cursor:pointer; display:none; }
 
-  /* Транзакции */
   .tx-list { max-height:400px; overflow-y:auto; margin-top:10px; padding-right:5px; }
   .tx-item { display:flex; justify-content:space-between; padding:12px; border-bottom:1px solid var(--border); background:rgba(0,0,0,0.05); border-radius:8px; margin-bottom:8px; animation:fadeUp 0.3s ease-out forwards; opacity:0; }
   [data-theme="light"] .tx-item { background:rgba(255,255,255,0.5); }
@@ -72,11 +77,10 @@
   .act-btn{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:5px;}
   .del-btn:active{color:var(--red);}
 
-  /* Модалки */
-  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:flex; justify-content:center; align-items:flex-end; opacity:0; pointer-events:none; transition:0.3s; z-index:100; backdrop-filter:blur(5px); }
+  .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.85); display:flex; justify-content:center; align-items:center; opacity:0; pointer-events:none; transition:0.3s; z-index:100; backdrop-filter:blur(5px); }
   .modal-overlay.active { opacity:1; pointer-events:auto; }
-  .modal { background:var(--bg); padding:25px; border-radius:20px 20px 0 0; width:100%; max-width:600px; transform:translateY(100%); transition:0.3s; border-top:1px solid var(--border); max-height:90vh; overflow-y:auto; color:var(--text); }
-  .modal-overlay.active .modal { transform:translateY(0); }
+  .modal { background:var(--bg); padding:25px; border-radius:20px; width:100%; max-width:600px; transform:scale(0.9); transition:0.3s; border:1px solid var(--border); max-height:90vh; overflow-y:auto; color:var(--text); }
+  .modal-overlay.active .modal { transform:scale(1); }
   .modal h2 { margin-bottom:15px; color:var(--accent); font-size:20px; }
   .form-group { margin-bottom:15px; }
   .form-group label { display:block; font-size:12px; color:var(--muted); margin-bottom:5px; }
@@ -103,34 +107,119 @@
   .welcome-icon { font-size:80px; margin-bottom:20px; animation:float 3s ease-in-out infinite; }
   @keyframes float { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
 
-  /* OCR Loader */
   .loader { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--accent); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; display:none; }
   @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-  /* Toast */
   .toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
   .toast { background: var(--card); color: var(--text); padding: 12px 20px; border-radius: 12px; border-left: 4px solid var(--accent); box-shadow: 0 5px 15px rgba(0,0,0,0.5); font-size: 14px; font-weight: 500; animation: slideDown 0.3s ease, fadeOut 0.3s ease 2.7s forwards; opacity: 0; backdrop-filter: blur(10px); white-space: nowrap; }
   .toast.error { border-left-color: var(--red); }
   @keyframes slideDown { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
   @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+  /* ====== СТИЛИ ДЛЯ КРАСИВОГО ОТЧЕТА ====== */
+  .report-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 3000; display: none; flex-direction: column; align-items: center; overflow-y: auto; padding: 20px 0; backdrop-filter: blur(10px); }
+  .report-modal.active { display: flex; }
+  .report-actions { position: sticky; top: 0; z-index: 10; display: flex; gap: 10px; margin-bottom: 20px; padding: 0 20px; width: 100%; max-width: 500px; justify-content: space-between; }
+  
+  .report-poster {
+    width: 100%;
+    max-width: 500px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 20px;
+    padding: 30px;
+    color: #fff;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+  .report-poster::before {
+    content: '';
+    position: absolute;
+    top: -50px; right: -50px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(108, 92, 231, 0.4) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .report-poster::after {
+    content: '';
+    position: absolute;
+    bottom: -80px; left: -50px;
+    width: 250px; height: 250px;
+    background: radial-gradient(circle, rgba(0, 184, 148, 0.2) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .report-header { position: relative; z-index: 1; text-align: center; margin-bottom: 30px; }
+  .report-header .period { font-size: 14px; color: #a29bfe; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 5px; }
+  .report-header h1 { font-size: 28px; font-weight: 800; background: linear-gradient(90deg, #fff, #a29bfe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  
+  .report-block { position: relative; z-index: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+  .report-block-title { font-size: 12px; color: #a29bfe; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 15px; font-weight: 600; }
+  
+  .report-summary { display: flex; justify-content: space-between; text-align: center; }
+  .report-summary .item { flex: 1; }
+  .report-summary .label { font-size: 11px; color: #888; margin-bottom: 5px; }
+  .report-summary .value { font-size: 20px; font-weight: 700; }
+  .report-summary .value.inc { color: #00b894; }
+  .report-summary .value.exp { color: #ff7675; }
+  .report-summary .value.net { color: #a29bfe; font-size: 24px; }
+  
+  .report-cat-row { margin-bottom: 12px; }
+  .report-cat-info { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+  .report-cat-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; }
+  .report-cat-fill { height: 100%; border-radius: 4px; }
+  
+  .report-tip { font-size: 14px; line-height: 1.6; color: #ddd; }
+  .report-tip strong { color: #fff; }
+  
+  .report-footer { position: relative; z-index: 1; text-align: center; font-size: 11px; color: #666; margin-top: 20px; }
 </style>
 </head>
 <body>
 
 <div class="toast-container" id="toastContainer"></div>
 
+<!-- БОКОВОЕ МЕНЮ -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMenu()"></div>
+<div class="sidebar" id="sidebar">
+  <h2>Дополнительно <button class="act-btn" style="font-size:24px; color:var(--text);" onclick="toggleMenu()">✕</button></h2>
+  
+  <div class="card" id="debtCard">
+    <div class="card-title">🏦 План погашения долгов</div>
+    <div id="debtPlannerText" style="font-size:14px; color:var(--muted); margin-bottom:10px; line-height:1.4;"></div>
+    <div style="display:flex; gap:10px; align-items:center;">
+      <span style="font-size:14px;">Платеж:</span>
+      <input type="number" id="debtPaymentInput" placeholder="10000" style="width:100px; padding:8px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.1); color:var(--text);" oninput="calculateDebtPlan()">
+      <span style="font-size:14px;">₽/мес</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title" style="justify-content:space-between;">
+      <span>🎯 Финансовые цели</span>
+      <button class="act-btn" style="color:var(--accent); font-size:20px;" onclick="openModal('addGoalModal')">+</button>
+    </div>
+    <div id="goalsList"></div>
+  </div>
+</div>
+
+<!-- ЭКРАН ПРИВЕТСТВИЯ -->
 <div class="welcome-overlay" id="welcomeOverlay">
   <div class="welcome-icon">📊</div>
-  <h2>Мои Финансы 2.0</h2>
+  <h2>Мои Финансы 2.4</h2>
   <p>Твой личный финансовый помощник. Импортируй файл, чтобы начать.</p>
   <button class="btn" style="max-width:280px;" onclick="document.getElementById('fileInput').click()">📥 Импортировать файл</button>
 </div>
 
+<!-- ХЕДЕР -->
 <div class="header">
-  <h1>Мои Финансы</h1>
+  <div class="header-left">
+    <button class="burger-btn" onclick="toggleMenu()">☰</button>
+    <h1>Мои Финансы</h1>
+  </div>
   <div class="controls">
     <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
-    <button class="icon-btn" onclick="takeScreenshot()" title="Поделиться">🖼️</button>
+    <button class="icon-btn" onclick="openReport()" title="Красивый отчет">📊</button>
     <button class="icon-btn" onclick="exportData()" title="Экспорт">📤</button>
     <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Импорт">📥</button>
     <input type="file" id="fileInput" style="display:none;" accept=".json" onchange="importFromFile(event)">
@@ -138,8 +227,8 @@
   </div>
 </div>
 
+<!-- ОСНОВНОЙ ДАШБОРД -->
 <div class="dashboard" id="dashboardWrap">
-  <!-- Умные инсайты -->
   <div class="card insights-box animate-in d1" id="insightsCard">
     <div style="font-weight:bold; margin-bottom:5px;">💡 Анализ:</div>
     <div id="insightsText">Загрузка...</div>
@@ -154,29 +243,9 @@
     <div class="card-value red" id="totalLiabilities">0 ₽</div>
   </div>
   
-  <!-- План погашения долгов -->
-  <div class="card animate-in d2" id="debtCard">
-    <div class="card-title">🏦 План погашения долгов</div>
-    <div id="debtPlannerText" style="font-size:14px; color:var(--muted); margin-bottom:10px; line-height:1.4;"></div>
-    <div style="display:flex; gap:10px; align-items:center;">
-      <span style="font-size:14px;">Платеж:</span>
-      <input type="number" id="debtPaymentInput" placeholder="10000" style="width:100px; padding:8px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.1); color:var(--text);" oninput="calculateDebtPlan()">
-      <span style="font-size:14px;">₽/мес</span>
-    </div>
-  </div>
-
   <div class="card clickable animate-in d3" onclick="showDetails('networth')">
     <div class="card-title">Чистый капитал</div>
     <div class="card-value" id="netWorth">0 ₽</div>
-  </div>
-
-  <!-- Цели -->
-  <div class="card animate-in d3">
-    <div class="card-title" style="justify-content:space-between;">
-      <span>🎯 Финансовые цели</span>
-      <button class="act-btn" style="color:var(--accent); font-size:20px;" onclick="openModal('addGoalModal')">+</button>
-    </div>
-    <div id="goalsList"></div>
   </div>
 
   <div class="card animate-in d3">
@@ -184,7 +253,6 @@
     <div class="chart-container"><canvas id="expenseChart"></canvas></div>
   </div>
 
-  <!-- Аналитика категорий (Круговая) -->
   <div class="card animate-in d3">
     <div class="card-title">📊 Аналитика по категориям</div>
     <div style="display:flex; justify-content:center; height:200px;"><canvas id="categoryChart"></canvas></div>
@@ -205,15 +273,104 @@
 
 <button class="fab" onclick="openModal('addTxModal')">+</button>
 
-<!-- Модалки -->
+<!-- МОДАЛКА ОТЧЕТА -->
+<div class="report-modal" id="reportModal">
+  <div class="report-actions">
+    <button class="btn btn-outline" style="background:rgba(0,0,0,0.5);" onclick="closeReport()">← Назад</button>
+    <button class="btn" style="background:var(--accent);" onclick="downloadReport()">📥 Скачать</button>
+  </div>
+  
+  <div class="report-poster" id="reportPoster">
+    <!-- Заголовок -->
+    <div class="report-header">
+      <div class="period" id="repPeriod">Месяц</div>
+      <h1>Финансовый отчет</h1>
+    </div>
+
+    <!-- Доходы и расходы -->
+    <div class="report-block">
+      <div class="report-block-title">Итоги месяца</div>
+      <div class="report-summary">
+        <div class="item">
+          <div class="label">Доходы</div>
+          <div class="value inc" id="repIncome">0 ₽</div>
+        </div>
+        <div class="item">
+          <div class="label">Расходы</div>
+          <div class="value exp" id="repExpense">0 ₽</div>
+        </div>
+      </div>
+      <div style="text-align:center; margin-top:15px; padding-top:15px; border-top:1px solid rgba(255,255,255,0.1);">
+        <div class="label" style="font-size:11px; color:#888; margin-bottom:5px;">Разница</div>
+        <div class="value net" id="repNet" style="font-size:22px; color:#a29bfe;">0 ₽</div>
+      </div>
+    </div>
+
+    <!-- Топ категорий -->
+    <div class="report-block">
+      <div class="report-block-title">Куда уходят деньги</div>
+      <div id="repCategories"></div>
+    </div>
+
+    <!-- Самый дорогой день -->
+    <div class="report-block">
+      <div class="report-block-title">Самая крупная трата</div>
+      <div id="repTopExpense" style="font-size:15px; color:#fff;"></div>
+    </div>
+
+    <!-- Капитал -->
+    <div class="report-block">
+      <div class="report-block-title">Твой капитал</div>
+      <div class="report-summary" style="margin-bottom: 10px;">
+        <div class="item">
+          <div class="label">Активы</div>
+          <div class="value inc" id="repAssets" style="font-size:16px;">0 ₽</div>
+        </div>
+        <div class="item">
+          <div class="label">Долги</div>
+          <div class="value exp" id="repLiabilities" style="font-size:16px;">0 ₽</div>
+        </div>
+      </div>
+      <div style="text-align:center; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+        <div class="label" style="font-size:11px; color:#888; margin-bottom:5px;">Чистый капитал</div>
+        <div class="value net" id="repNetWorth" style="font-size:24px; color:#a29bfe;">0 ₽</div>
+      </div>
+    </div>
+
+    <!-- Инсайт/Совет -->
+    <div class="report-block" style="background: linear-gradient(135deg, rgba(108,92,231,0.2), rgba(0,184,148,0.1));">
+      <div class="report-block-title" style="color: #fff;">💡 Совет</div>
+      <div class="report-tip" id="repTip">Загрузка...</div>
+    </div>
+
+    <div class="report-footer">
+      Сгенерировано в приложении «Мои Финансы»<br>
+      <span id="repDate"></span>
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКИ -->
 <div class="modal-overlay" id="addTxModal">
   <div class="modal">
     <h2>Новая транзакция</h2>
     <div class="form-group"><label>Дата</label><input type="date" id="txDate"></div>
-    <div class="form-group"><label>Тип</label>
-      <select id="txType" onchange="updateCategoryOptions()">
+    <div class="form-group">
+      <label>Тип</label>
+      <select id="txType" onchange="handleTypeChange()">
         <option value="expense">Расход</option>
         <option value="income">Доход</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Счет (Актив/Пассив)</label>
+      <select id="txSource" onchange="handleSourceChange()"></select>
+    </div>
+    <div class="form-group" id="actionGroup" style="display:none;">
+      <label>Действие с долгом</label>
+      <select id="txAction">
+        <option value="increase">Увеличить долг (взял в долг/купил в кредит)</option>
+        <option value="decrease">Уменьшить долг (оплатил долг)</option>
       </select>
     </div>
     <div class="form-group"><label>Категория</label><select id="txCategory"></select></div>
@@ -251,17 +408,18 @@
   </div>
 </div>
 
-<!-- OCR Модалка -->
 <div class="modal-overlay" id="ocrModal">
   <div class="modal">
-    <h2>Распознавание скриншота</h2>
+    <h2>Распознавание трат</h2>
     <div id="ocrStatus" style="color:var(--muted); font-size:14px; margin-bottom:15px;">Загрузка изображения...</div>
     <div class="loader" id="ocrLoader"></div>
     <div id="ocrResult" style="display:none;">
-      <div class="form-group"><label>Распознанный текст (проверь и исправь)</label><textarea id="ocrText" style="width:100%; height:80px; padding:10px; border-radius:8px; border:1px solid var(--border); background:rgba(0,0,0,0.1); color:var(--text); font-size:14px;"></textarea></div>
-      <div class="form-group"><label>Извлеченная сумма (₽)</label><input type="number" id="ocrAmount" placeholder="0"></div>
-      <div class="form-group"><label>Дата</label><input type="date" id="ocrDate"></div>
+      <p style="font-size:12px; color:var(--muted); margin-bottom:10px;">Проверь данные. Игнорируются переводы и зачисления.</p>
+      <div class="form-group"><label>Магазин (Описание)</label><input type="text" id="ocrDesc"></div>
+      <div class="form-group"><label>Извлеченная сумма (₽)</label><input type="number" id="ocrAmount"></div>
       <div class="form-group"><label>Категория</label><select id="ocrCategory"></select></div>
+      <div class="form-group"><label>Дата</label><input type="date" id="ocrDate"></div>
+      <div class="form-group"><label>Счет списания</label><select id="ocrSource"></select></div>
       <button class="btn" onclick="saveOcrTransaction()">Добавить транзакцию</button>
     </div>
     <button class="btn btn-outline" style="margin-top:10px;" onclick="closeModal('ocrModal')">Закрыть</button>
@@ -280,6 +438,11 @@
   const $ = id => document.getElementById(id);
   const money = n => new Intl.NumberFormat('ru-RU', { style:'currency', currency:'RUB', maximumFractionDigits:0 }).format(n);
   const save = () => localStorage.setItem('financeData', JSON.stringify(appData));
+
+  function toggleMenu() {
+    $('sidebar').classList.toggle('open');
+    $('sidebarOverlay').classList.toggle('open');
+  }
 
   function showToast(msg, type = 'success') {
     const container = $('toastContainer');
@@ -304,16 +467,17 @@
   function init() {
     document.body.setAttribute('data-theme', currentTheme);
     $('themeBtn').textContent = currentTheme === 'dark' ? '🌙' : '☀️';
-    
     const stored = localStorage.getItem('financeData');
     if (stored) {
       appData = JSON.parse(stored);
-      if(!appData.goals) appData.goals = []; // Миграция
+      if(!appData.goals) appData.goals = [];
       $('welcomeOverlay').classList.add('hidden');
       render();
     } else {
       $('welcomeOverlay').classList.remove('hidden');
     }
+    updateSourceOptions('txSource');
+    updateSourceOptions('ocrSource');
   }
 
   function render() {
@@ -342,7 +506,6 @@
 
     let curExpense = 0, prevExpense = 0;
     let topCat = {}; 
-
     appData.transactions.forEach(t => {
       if(t.type === 'expense') {
         if(t.date.startsWith(currentMonthStr)) {
@@ -353,8 +516,7 @@
       }
     });
 
-    let bestCat = '';
-    let maxVal = 0;
+    let bestCat = '', maxVal = 0;
     for(let c in topCat) { if(topCat[c] > maxVal) { maxVal = topCat[c]; bestCat = c; } }
 
     let text = "";
@@ -363,7 +525,6 @@
     } else {
       text = `В этом месяце потрачено <b>${money(curExpense)}</b>. `;
       if (bestCat) text += `Больше всего ушло на «<b>${bestCat}</b>» (${money(maxVal)}). `;
-      
       if (prevExpense > 0) {
         const diff = curExpense - prevExpense;
         if (diff > 0) text += `Это на <span style="color:var(--red)">${money(diff)} больше</span> прошлого месяца.`;
@@ -385,16 +546,11 @@
       const el = document.createElement('div');
       el.className = 'goal-item';
       el.innerHTML = `
-        <div class="goal-header">
-          <span>${g.name}</span>
-          <span>${money(g.current)} / ${money(g.target)}</span>
-        </div>
+        <div class="goal-header"><span>${g.name}</span><span>${money(g.current)} / ${money(g.target)}</span></div>
         <div class="goal-progress"><div class="goal-bar" style="width:${pct}%"></div></div>
         <div style="display:flex; justify-content:space-between; margin-top:5px; font-size:12px; color:var(--muted);">
-          <span>${pct}%</span>
-          <button class="act-btn" onclick="deleteGoal(${i})">🗑️</button>
-        </div>
-      `;
+          <span>${pct}%</span><button class="act-btn" onclick="deleteGoal(${i})">🗑️</button>
+        </div>`;
       container.appendChild(el);
     });
   }
@@ -405,32 +561,24 @@
       $('debtPlannerText').innerHTML = "<span style='color:var(--green)'>У тебя нет долгов! Так держать.</span>";
       return;
     }
-
-    // Вычисляем средний профицит за последние 2 месяца
     let totalInc = 0, totalExp = 0;
     appData.transactions.forEach(t => {
       if (t.type === 'income') totalInc += Number(t.amount);
       else totalExp += Number(t.amount);
     });
-
     let recommended = 10000; 
-    // Если есть история, предлагаем (Доходы - Расходы) * 0.5, чтобы не оставлять себя без денег
     if (totalInc > 0) {
-      const surplus = (totalInc - totalExp) / 2; // /2 т.к. 2 месяца примерно
+      const surplus = (totalInc - totalExp) / 2;
       if (surplus > 1000) recommended = Math.round(surplus * 0.6); 
     }
-
     let inputVal = parseInt($('debtPaymentInput').value);
     if (isNaN(inputVal) || inputVal <= 0) {
       inputVal = recommended;
       $('debtPaymentInput').placeholder = recommended;
     }
-
     const months = Math.ceil(totalDebt / inputVal);
     let monthsText = months < 12 ? `${months} мес.` : `${Math.floor(months/12)} г. ${months%12} мес.`;
-    
-    $('debtPlannerText').innerHTML = `Общий долг: <b>${money(totalDebt)}</b><br>
-      Если платить по <b>${money(inputVal)}</b>, ты закроешь всё за <b style="color:var(--accent)">${monthsText}</b>.`;
+    $('debtPlannerText').innerHTML = `Общий долг: <b>${money(totalDebt)}</b><br>Если платить по <b>${money(inputVal)}</b>, ты закроешь всё за <b style="color:var(--accent)">${monthsText}</b>.`;
   }
 
   function renderTransactions() {
@@ -441,10 +589,7 @@
     
     let filtered = appData.transactions;
     if (query) {
-      filtered = filtered.filter(tx => 
-        (tx.description || '').toLowerCase().includes(query) || 
-        (tx.category || '').toLowerCase().includes(query)
-      );
+      filtered = filtered.filter(tx => (tx.description || '').toLowerCase().includes(query) || (tx.category || '').toLowerCase().includes(query));
     }
 
     $('txCount').textContent = `(${filtered.length})`;
@@ -465,7 +610,7 @@
       el.innerHTML = `
         <div class="tx-info">
           <span class="tx-desc">${tx.description || tx.category}</span>
-          <span class="tx-date">${dateStr} · ${tx.category}</span>
+          <span class="tx-date">${dateStr} · ${tx.category} ${tx.source ? '· ' + tx.source : ''}</span>
         </div>
         <div class="tx-right">
           <div class="tx-amount ${isInc ? 'green' : 'red'}">${isInc ? '+' : '-'}${money(tx.amount)}</div>
@@ -505,9 +650,7 @@
     const ctx = $('categoryChart').getContext('2d');
     const cats = {};
     appData.transactions.forEach(t => {
-      if (t.type === 'expense') {
-        cats[t.category] = (cats[t.category] || 0) + Number(t.amount);
-      }
+      if (t.type === 'expense') cats[t.category] = (cats[t.category] || 0) + Number(t.amount);
     });
     const labels = Object.keys(cats);
     const data = Object.values(cats);
@@ -522,6 +665,233 @@
     });
   }
 
+  function updateSourceOptions(selectId, type = 'all') {
+    const select = $(selectId);
+    if(!select) return;
+    select.innerHTML = '';
+    if (type === 'all' || type === 'expense') {
+      appData.assets.forEach(a => {
+        const opt = document.createElement('option');
+        opt.value = `asset_${a.name}`;
+        opt.textContent = `[Актив] ${a.name} (${a.amount}₽)`;
+        select.appendChild(opt);
+      });
+      appData.liabilities.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = `liab_${l.name}`;
+        opt.textContent = `[Пассив] ${l.name} (${l.amount}₽)`;
+        select.appendChild(opt);
+      });
+    }
+  }
+
+  function handleTypeChange() {
+    const type = $('txType').value;
+    const catSelect = $('txCategory');
+    catSelect.innerHTML = '';
+    const cats = type === 'expense' ? EXPENSE_CATS : INCOME_CATS;
+    cats.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      catSelect.appendChild(opt);
+    });
+  }
+
+  function handleSourceChange() {
+    const val = $('txSource').value;
+    if (val && val.startsWith('liab_')) {
+      $('actionGroup').style.display = 'block';
+    } else {
+      $('actionGroup').style.display = 'none';
+    }
+  }
+
+  function addTransaction() {
+    const date = $('txDate').value;
+    const type = $('txType').value;
+    const sourceVal = $('txSource').value;
+    const action = $('txAction').value;
+    const cat = $('txCategory').value;
+    const desc = $('txDesc').value;
+    const amt = parseFloat($('txAmount').value);
+    
+    if (!date || !cat || isNaN(amt) || amt <= 0) { showToast('Заполни все поля!', 'error'); return; }
+
+    if (sourceVal) {
+      const [srcType, srcName] = sourceVal.split('_');
+      if (srcType === 'asset') {
+        const asset = appData.assets.find(a => a.name === srcName);
+        if (asset) {
+          if (type === 'expense') asset.amount -= amt;
+          else asset.amount += amt;
+        }
+      } else if (srcType === 'liab') {
+        const liab = appData.liabilities.find(l => l.name === srcName);
+        if (liab) {
+          if (action === 'increase') liab.amount += amt;
+          else liab.amount -= amt;
+        }
+      }
+    }
+
+    appData.transactions.push({ date, type, category: cat, description: desc || cat, amount: amt, source: sourceVal ? sourceVal.split('_')[1] : '' });
+    save(); render(); closeModal('addTxModal');
+    $('txDesc').value = ''; $('txAmount').value = '';
+    showToast('Транзакция добавлена');
+  }
+
+  function duplicateTx(idx) {
+    const tx = appData.transactions[idx];
+    const today = new Date().toISOString().split('T')[0];
+    appData.transactions.push({ ...tx, date: today });
+    save(); render();
+    showToast('Скопировано на сегодня');
+  }
+
+  function deleteTx(idx) {
+    if (!confirm('Удалить?')) return;
+    appData.transactions.splice(idx, 1);
+    save(); render(); showToast('Удалено', 'error');
+    if (currentDetail === 'networth') showDetails('networth');
+  }
+
+  function addAssetOrLiability() {
+    const name = $('assetName').value;
+    const amt = parseFloat($('assetAmount').value);
+    if (!name || isNaN(amt)) { showToast('Введите название и сумму', 'error'); return; }
+    if (currentDetail === 'assets') appData.assets.push({ name, amount:amt });
+    else appData.liabilities.push({ name, amount:amt });
+    save(); render(); showDetails(currentDetail);
+    $('assetName').value = ''; $('assetAmount').value = '';
+    updateSourceOptions('txSource');
+    updateSourceOptions('ocrSource');
+    showToast('Добавлено');
+  }
+
+  function deleteAsset(type, idx) {
+    if (!confirm('Удалить?')) return;
+    if (type === 'assets') appData.assets.splice(idx, 1);
+    else appData.liabilities.splice(idx, 1);
+    save(); render(); showDetails(type);
+    updateSourceOptions('txSource');
+    updateSourceOptions('ocrSource');
+    showToast('Удалено', 'error');
+  }
+
+  function addGoal() {
+    const name = $('goalName').value;
+    const target = parseFloat($('goalTarget').value);
+    const current = parseFloat($('goalCurrent').value) || 0;
+    if (!name || isNaN(target) || target <= 0) { showToast('Заполни поля', 'error'); return; }
+    appData.goals.push({ name, target, current });
+    save(); render(); closeModal('addGoalModal');
+    $('goalName').value = ''; $('goalTarget').value = ''; $('goalCurrent').value = '';
+    showToast('Цель создана!');
+  }
+
+  function deleteGoal(idx) {
+    if (!confirm('Удалить цель?')) return;
+    appData.goals.splice(idx, 1); save(); render(); showToast('Удалено', 'error');
+  }
+
+  async function processOCR(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    openModal('ocrModal');
+    $('ocrLoader').style.display = 'block';
+    $('ocrStatus').textContent = 'Сканирую чек... (5-10 сек)';
+    $('ocrResult').style.display = 'none';
+
+    try {
+      const result = await Tesseract.recognize(file, 'rus+eng');
+      const text = result.data.text;
+      
+      const lines = text.split('\n');
+      let foundAmount = 0;
+      let foundDesc = '';
+      let foundCat = 'Прочее';
+
+      const CAT_MAP = {
+        'Монетка': 'Продукты', 'Пятерочка': 'Продукты', 'Магнит': 'Продукты', 'Перекресток': 'Продукты', 'Дикси': 'Продукты',
+        'Яндекс': 'Машина', 'Такси': 'Машина', 'Бензин': 'Машина', 'АЗС': 'Машина', 'Лукойл': 'Машина', 'Газпром': 'Машина',
+        'Кафе': 'Еда вне дома', 'Ресторан': 'Еда вне дома', 'Столовая': 'Еда вне дома', 'Кофе': 'Еда вне дома', 'Суши': 'Еда вне дома',
+        'Аптека': 'Здоровье и красота', 'Косметика': 'Здоровье и красота'
+      };
+
+      for (let line of lines) {
+        if (line.includes('+') || line.toLowerCase().includes('входящий') || line.toLowerCase().includes('перевод по сбп')) {
+          continue;
+        }
+
+        const amountMatch = line.match(/(\d{1,3}(?:\s\d{3})*|\d+)(?:[.,](\d{2}))?\s*₽/);
+        if (amountMatch) {
+          let amt = parseFloat(amountMatch[1].replace(/\s/g, '') + (amountMatch[2] ? '.' + amountMatch[2] : ''));
+          let desc = '';
+          for (let key in CAT_MAP) {
+            if (line.includes(key)) {
+              desc = key;
+              foundCat = CAT_MAP[key];
+              break;
+            }
+          }
+          if (desc || line.toLowerCase().includes('оплата')) {
+            foundAmount = amt;
+            foundDesc = desc || 'Оплата';
+            break; 
+          }
+        }
+      }
+
+      $('ocrAmount').value = foundAmount || '';
+      $('ocrDesc').value = foundDesc;
+      $('ocrDate').value = new Date().toISOString().split('T')[0];
+      
+      const ocrCatSelect = $('ocrCategory');
+      ocrCatSelect.innerHTML = '';
+      EXPENSE_CATS.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c; opt.textContent = c;
+        if(c === foundCat) opt.selected = true;
+        ocrCatSelect.appendChild(opt);
+      });
+
+      $('ocrLoader').style.display = 'none';
+      $('ocrStatus').textContent = foundAmount ? 'Трата найдена! Проверь данные.' : 'Не удалось найти сумму. Введи вручную.';
+      $('ocrResult').style.display = 'block';
+    } catch (e) {
+      $('ocrLoader').style.display = 'none';
+      $('ocrStatus').textContent = 'Ошибка сканирования.';
+      console.error(e);
+    }
+    event.target.value = '';
+  }
+
+  function saveOcrTransaction() {
+    const amt = parseFloat($('ocrAmount').value);
+    const date = $('ocrDate').value;
+    const desc = $('ocrDesc').value;
+    const cat = $('ocrCategory').value;
+    const sourceVal = $('ocrSource').value;
+    
+    if (!amt || !date) { showToast('Заполни сумму и дату!', 'error'); return; }
+    
+    if (sourceVal) {
+      const [srcType, srcName] = sourceVal.split('_');
+      if (srcType === 'asset') {
+        const asset = appData.assets.find(a => a.name === srcName);
+        if (asset) asset.amount -= amt;
+      } else if (srcType === 'liab') {
+        const liab = appData.liabilities.find(l => l.name === srcName);
+        if (liab) liab.amount += amt;
+      }
+    }
+
+    appData.transactions.push({ date, type: 'expense', category: cat, description: desc, amount: amt, source: sourceVal ? sourceVal.split('_')[1] : '' });
+    save(); render(); closeModal('ocrModal');
+    showToast('Добавлено из сканера');
+  }
+
   function showDetails(type) {
     currentDetail = type;
     const modal = $('detailsModal');
@@ -531,14 +901,10 @@
 
     if (type === 'assets') {
       $('detailTitle').textContent = 'Активы';
-      items = appData.assets;
-      total = items.reduce((s,i) => s + Number(i.amount), 0);
-      canAdd = true;
+      items = appData.assets; total = items.reduce((s,i) => s + Number(i.amount), 0); canAdd = true;
     } else if (type === 'liabilities') {
       $('detailTitle').textContent = 'Пассивы';
-      items = appData.liabilities;
-      total = items.reduce((s,i) => s + Number(i.amount), 0);
-      canAdd = true;
+      items = appData.liabilities; total = items.reduce((s,i) => s + Number(i.amount), 0); canAdd = true;
     } else {
       $('detailTitle').textContent = 'Чистый капитал';
       const a = appData.assets.reduce((s,i) => s + Number(i.amount), 0);
@@ -587,154 +953,130 @@
     modal.classList.add('active');
   }
 
-  function addTransaction() {
-    const date = $('txDate').value;
-    const type = $('txType').value;
-    const cat = $('txCategory').value;
-    const desc = $('txDesc').value;
-    const amt = parseFloat($('txAmount').value);
-    if (!date || !cat || isNaN(amt) || amt <= 0) { showToast('Заполни все поля!', 'error'); return; }
+  // ==========================================
+  // 🎨 ГЕНЕРАЦИЯ КРАСИВОГО ОТЧЕТА
+  // ==========================================
+  function openReport() {
+    const now = new Date();
+    const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
     
-    appData.transactions.push({ date, type, category: cat, description: desc || cat, amount: amt });
-    save(); render(); closeModal('addTxModal');
-    $('txDesc').value = ''; $('txAmount').value = '';
-    showToast('Транзакция добавлена');
-  }
+    $('repPeriod').textContent = `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+    $('repDate').textContent = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
 
-  function duplicateTx(idx) {
-    const tx = appData.transactions[idx];
-    const today = new Date().toISOString().split('T')[0];
-    appData.transactions.push({ ...tx, date: today });
-    save(); render();
-    showToast('Скопировано на сегодня');
-  }
+    // Считаем доходы и расходы за месяц
+    let monthInc = 0, monthExp = 0;
+    let catTotals = {};
+    let topExp = { amount: 0, desc: '', date: '' };
 
-  function deleteTx(idx) {
-    if (!confirm('Удалить?')) return;
-    appData.transactions.splice(idx, 1);
-    save(); render();
-    showToast('Удалено', 'error');
-    if (currentDetail === 'networth') showDetails('networth');
-  }
-
-  function addAssetOrLiability() {
-    const name = $('assetName').value;
-    const amt = parseFloat($('assetAmount').value);
-    if (!name || isNaN(amt)) { showToast('Введите название и сумму', 'error'); return; }
-    if (currentDetail === 'assets') appData.assets.push({ name, amount:amt });
-    else appData.liabilities.push({ name, amount:amt });
-    save(); render(); showDetails(currentDetail);
-    $('assetName').value = ''; $('assetAmount').value = '';
-    showToast('Добавлено');
-  }
-
-  function deleteAsset(type, idx) {
-    if (!confirm('Удалить?')) return;
-    if (type === 'assets') appData.assets.splice(idx, 1);
-    else appData.liabilities.splice(idx, 1);
-    save(); render(); showDetails(type);
-    showToast('Удалено', 'error');
-  }
-
-  function addGoal() {
-    const name = $('goalName').value;
-    const target = parseFloat($('goalTarget').value);
-    const current = parseFloat($('goalCurrent').value) || 0;
-    if (!name || isNaN(target) || target <= 0) { showToast('Заполни поля', 'error'); return; }
-    appData.goals.push({ name, target, current });
-    save(); render(); closeModal('addGoalModal');
-    $('goalName').value = ''; $('goalTarget').value = ''; $('goalCurrent').value = '';
-    showToast('Цель создана!');
-  }
-
-  function deleteGoal(idx) {
-    if (!confirm('Удалить цель?')) return;
-    appData.goals.splice(idx, 1); save(); render(); showToast('Удалено', 'error');
-  }
-
-  function updateCategoryOptions(selectId = 'txCategory', type = 'expense') {
-    const select = $(selectId);
-    select.innerHTML = '';
-    const cats = type === 'expense' ? EXPENSE_CATS : INCOME_CATS;
-    cats.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c; opt.textContent = c;
-      select.appendChild(opt);
+    appData.transactions.forEach(t => {
+      if (t.date.startsWith(currentMonthStr)) {
+        if (t.type === 'income') {
+          monthInc += Number(t.amount);
+        } else {
+          monthExp += Number(t.amount);
+          catTotals[t.category] = (catTotals[t.category] || 0) + Number(t.amount);
+          if (Number(t.amount) > topExp.amount) {
+            topExp = { amount: Number(t.amount), desc: t.description || t.category, date: t.date };
+          }
+        }
+      }
     });
+
+    const netMonth = monthInc - monthExp;
+
+    $('repIncome').textContent = money(monthInc);
+    $('repExpense').textContent = money(monthExp);
+    $('repNet').textContent = (netMonth >= 0 ? '+' : '') + money(netMonth);
+    $('repNet').style.color = netMonth >= 0 ? '#00b894' : '#ff7675';
+
+    // Топ категорий
+    const sortedCats = Object.entries(catTotals).sort((a,b) => b[1] - a[1]).slice(0, 3);
+    const catContainer = $('repCategories');
+    catContainer.innerHTML = '';
+    if (sortedCats.length === 0) {
+      catContainer.innerHTML = '<p style="text-align:center; color:#888; font-size:13px;">Нет трат за этот месяц</p>';
+    } else {
+      const maxCatVal = sortedCats[0][1];
+      sortedCats.forEach(([name, val], i) => {
+        const pct = (val / maxCatVal) * 100;
+        const color = COLORS[i % COLORS.length];
+        const el = document.createElement('div');
+        el.className = 'report-cat-row';
+        el.innerHTML = `
+          <div class="report-cat-info">
+            <span>${name}</span>
+            <strong>${money(val)}</strong>
+          </div>
+          <div class="report-cat-bar">
+            <div class="report-cat-fill" style="width:${pct}%; background:${color};"></div>
+          </div>
+        `;
+        catContainer.appendChild(el);
+      });
+    }
+
+    // Самая крупная трата
+    if (topExp.amount > 0) {
+      const d = new Date(topExp.date).toLocaleDateString('ru-RU');
+      $('repTopExpense').innerHTML = `
+        <div style="font-size:24px; font-weight:800; color:#ff7675; margin-bottom:5px;">${money(topExp.amount)}</div>
+        <div style="font-size:14px; color:#ddd;">${topExp.desc}</div>
+        <div style="font-size:12px; color:#888; margin-top:3px;">${d}</div>
+      `;
+    } else {
+      $('repTopExpense').innerHTML = '<div style="font-size:14px; color:#888;">Нет трат</div>';
+    }
+
+    // Активы и пассивы
+    const aSum = appData.assets.reduce((s,i) => s + Number(i.amount), 0);
+    const lSum = appData.liabilities.reduce((s,i) => s + Number(i.amount), 0);
+    $('repAssets').textContent = money(aSum);
+    $('repLiabilities').textContent = money(lSum);
+    $('repNetWorth').textContent = money(aSum - lSum);
+
+    // Умный совет
+    let tip = "";
+    if (monthExp === 0) {
+      tip = "В этом месяце ты еще не тратил. Отличный шанс начать откладывать!";
+    } else if (netMonth < 0) {
+      tip = `Внимание! Ты потратил на <strong>${money(Math.abs(netMonth))}</strong> больше, чем заработал. Попробуй урезать расходы на «${sortedCats[0] ? sortedCats[0][0] : 'главные категории'}» в следующем месяце.`;
+    } else if (lSum > aSum * 0.5) {
+      tip = `Твои долги (${money(lSum)}) составляют больше половины активов. Постарайся направить свободные средства на погашение кредиток.`;
+    } else if (netMonth > 0) {
+      tip = `Супер! Ты остался в плюсе на <strong>${money(netMonth)}</strong>. Рекомендую отложить эти деньги в сбережения или инвестиции.`;
+    } else {
+      tip = "Ты вышел в ноль. Это стабильно, но подумай, как создать финансовую подушку.";
+    }
+    $('repTip').innerHTML = tip;
+
+    $('reportModal').classList.add('active');
   }
 
-  // ==== OCR ЛОГИКА ====
-  async function processOCR(event) {
-    const file = event.target.files[0];
-    if (!file) return;
+  function closeReport() {
+    $('reportModal').classList.remove('active');
+  }
 
-    openModal('ocrModal');
-    $('ocrLoader').style.display = 'block';
-    $('ocrStatus').textContent = 'Распознавание текста (может занять 5-10 секунд)...';
-    $('ocrResult').style.display = 'none';
+  async function downloadReport() {
+    showToast('Готовим картинку...');
+    const element = document.getElementById('reportPoster');
+    
+    // Временно делаем постор полностью непрозрачным для скриншота
+    const originalBg = element.style.background;
+    element.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)';
 
     try {
-      const result = await Tesseract.recognize(file, 'rus+eng');
-      const text = result.data.text;
-      
-      // Ищем сумму (число с копейками или без)
-      const amountMatch = text.match(/(\d{1,3}(?:\s?\d{3})*|\d+)(?:[.,](\d{2}))?\s?(?:₽|руб|RUB)/i);
-      let parsedAmount = 0;
-      if (amountMatch) {
-        parsedAmount = parseFloat(amountMatch[1].replace(/\s/g, '') + (amountMatch[2] ? '.' + amountMatch[2] : ''));
-      } else {
-        // Если не нашли с символом валюты, ищем просто числа > 100
-        const numbers = text.match(/\b\d{3,}\b/g);
-        if(numbers) parsedAmount = numbers[0];
-      }
+      const canvas = await html2canvas(element, {
+        scale: 2,
+        backgroundColor: null,
+        useCORS: true,
+        logging: false
+      });
 
-      $('ocrText').value = text.substring(0, 200);
-      $('ocrAmount').value = parsedAmount || '';
-      $('ocrDate').value = new Date().toISOString().split('T')[0];
-      updateCategoryOptions('ocrCategory', 'expense');
-
-      $('ocrLoader').style.display = 'none';
-      $('ocrStatus').textContent = 'Готово! Проверь данные и сохрани.';
-      $('ocrResult').style.display = 'block';
-    } catch (e) {
-      $('ocrLoader').style.display = 'none';
-      $('ocrStatus').textContent = 'Ошибка распознавания. Попробуй еще раз.';
-      console.error(e);
-    }
-    event.target.value = '';
-  }
-
-  function saveOcrTransaction() {
-    const amt = parseFloat($('ocrAmount').value);
-    const date = $('ocrDate').value;
-    const cat = $('ocrCategory').value;
-    
-    if (!amt || !date) { showToast('Заполни сумму и дату!', 'error'); return; }
-    appData.transactions.push({ date, type: 'expense', category: cat, description: 'Из OCR', amount: amt });
-    save(); render(); closeModal('ocrModal');
-    showToast('Транзакция добавлена из скрина');
-  }
-
-  // ==== СКРИНШОТ ПРИЛОЖЕНИЯ ====
-  function takeScreenshot() {
-    showToast('Готовим картинку...');
-    const element = document.getElementById('dashboardWrap');
-    
-    // Временно меняем фон для красивого скрина
-    const originalBg = element.style.background;
-    element.style.background = getComputedStyle(document.body).backgroundColor;
-    element.style.padding = '10px';
-    element.style.borderRadius = '20px';
-
-    html2canvas(element, { scale: 2, backgroundColor: getComputedStyle(document.body).backgroundColor }).then(canvas => {
-      element.style.background = originalBg;
-      element.style.padding = '0';
-      element.style.borderRadius = '0';
-      
       canvas.toBlob(blob => {
         const file = new File([blob], 'finance_report.png', { type: 'image/png' });
         if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-          navigator.share({ files: [file], title: 'Мой отчет' }).catch(() => {});
+          navigator.share({ files: [file], title: 'Мой финансовый отчет' }).catch(() => {});
         } else {
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -742,13 +1084,17 @@
           URL.revokeObjectURL(url);
         }
       });
-    });
+    } catch (e) {
+      console.error(e);
+      showToast('Ошибка сохранения', 'error');
+    } finally {
+      element.style.background = originalBg;
+    }
   }
 
   async function exportData() {
     const json = JSON.stringify(appData, null, 2);
     const fileName = `finance_${new Date().toISOString().split('T')[0]}.json`;
-
     if (navigator.share && navigator.canShare) {
       try {
         const file = new File([json], fileName, { type: 'application/json' });
@@ -758,7 +1104,6 @@
         }
       } catch (e) {}
     }
-
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -791,7 +1136,9 @@
   function openModal(id) {
     if (id === 'addTxModal') {
       $('txDate').value = new Date().toISOString().split('T')[0];
-      updateCategoryOptions();
+      handleTypeChange();
+      updateSourceOptions('txSource');
+      handleSourceChange();
     }
     $(id).classList.add('active');
   }
@@ -800,7 +1147,6 @@
     o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); });
   });
 
-  // Обновляем план долгов при вводе
   $('debtPaymentInput').addEventListener('input', calculateDebtPlan);
 
   init();
