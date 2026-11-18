@@ -2,14 +2,42 @@
   "name": "Мои Финансы",
   "short_name": "Финансы",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0f0f15",
   "theme_color": "#6c5ce7",
+  "description": "Личный финансовый помощник для учета трат и доходов",
   "icons": [
     {
-      "src": "https://cdn-icons-png.flaticon.com/512/2489/2489756.png",
+      "src": "https://cdn-icons-png.flaticon.com/512/2488/2488756.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Добавить трату",
+      "short_name": "Трата",
+      "description": "Быстро добавить расход",
+      "url": "./?action=add_expense",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Добавить доход",
+      "short_name": "Доход",
+      "description": "Быстро добавить доход",
+      "url": "./?action=add_income",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
